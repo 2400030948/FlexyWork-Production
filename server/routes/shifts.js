@@ -1,0 +1,254 @@
+import express from "express";
+import mongoose from "mongoose";
+import { z } from "zod";
+import { requireAuth, requireRole } from "../middleware/auth.js";
+import { Application } from "../models/Application.js";
+import { Attendance } from "../models/Attendance.js";
+import { Notification } from "../models/Notification.js";
+import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
+import { Shift } from "../models/Shift.js";
+import { User } from "../models/User.js";
+import { calculateMatch } from "../services/matching.js";
+
+const router = express.Router();
+
+const shiftSchema = z.object({
+  title: z.string().min(2),
+  description: z.string().min(8),
+  category: z.string().min(2),
+  requiredSkills: z.array(z.string()).default([]),
+  workersRequired: z.coerce.number().int().min(1).default(1),
+  date: z.string().min(4),
+  startTime: z.string().min(2),
+  endTime: z.string().min(2),
+  duration: z.string().min(1),
+  paymentType: z.enum(["fixed", "hourly"]).default("fixed"),
+  paymentAmount: z.coerce.number().min(1),
+  location: z.string().min(2),
+  maximumDistance: z.coerce.number().min(1).default(8),
+  urgency: z.enum(["normal", "urgent"]).default("normal")
+});
+
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+async function serializeShift(shift, workerProfile, viewerId) {
+  const employer = await User.findById(shift.employerId);
+  const employerProfile = await EmployerProfile.findOne({ userId: shift.employerId });
+  const application = viewerId ? await Application.findOne({ shiftId: shift._id, workerId: viewerId }) : null;
+  const match = workerProfile ? calculateMatch(shift, workerProfile) : null;
+
+  return {
+    id: shift._id.toString(),
+    title: shift.title,
+    role: shift.title,
+    description: shift.description,
+    category: shift.category,
+    requiredSkills: shift.requiredSkills,
+    skills: shift.requiredSkills,
+    workersRequired: shift.workersRequired,
+    filledCount: shift.assignedWorkerIds.length,
+    date: shift.date,
+    startTime: shift.startTime,
+    endTime: shift.endTime,
+    time: `${shift.startTime} - ${shift.endTime}`,
+    duration: shift.duration,
+    paymentType: shift.paymentType,
+    paymentAmount: shift.paymentAmount,
+    pay: shift.paymentAmount,
+    location: shift.location,
+    area: shift.location,
+    distance: 1.4,
+    maximumDistance: shift.maximumDistance,
+    status: shift.status,
+    urgency: shift.urgency,
+    employer: employerProfile?.businessName || employer?.name || "Local employer",
+    employerInfo: employer ? { id: employer.id, name: employer.name, email: employer.email } : null,
+    match,
+    applicationStatus: application?.status || null,
+    tags: [shift.urgency === "urgent" ? "Urgent" : "Nearby", shift.category, shift.paymentType === "fixed" ? "Fixed pay" : "Hourly"]
+  };
+}
+
+router.get("/", requireAuth, async (req, res, next) => {
+  try {
+    const query = { status: "published" };
+    if (req.query.category) query.category = req.query.category;
+    if (req.query.date) query.date = req.query.date;
+    if (req.query.search) {
+      const regex = new RegExp(escapeRegex(String(req.query.search)), "i");
+      query.$or = [{ title: regex }, { description: regex }, { category: regex }, { location: regex }];
+    }
+    if (req.query.minPay) query.paymentAmount = { $gte: Number(req.query.minPay) };
+
+    const workerProfile = req.user.role === "worker" ? await WorkerProfile.findOne({ userId: req.user._id }) : null;
+    const shifts = await Shift.find(query).sort({ createdAt: -1 }).limit(50);
+    res.json({ shifts: await Promise.all(shifts.map((shift) => serializeShift(shift, workerProfile, req.user._id))) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/", requireAuth, requireRole("employer"), async (req, res, next) => {
+  try {
+    const body = shiftSchema.parse(req.body);
+    const shift = await Shift.create({ ...body, employerId: req.user._id, status: "published" });
+    res.status(201).json({ shift: await serializeShift(shift) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/parse", requireAuth, requireRole("employer"), (req, res, next) => {
+  try {
+    const text = z.object({ prompt: z.string().min(3) }).parse(req.body).prompt;
+    const lower = text.toLowerCase();
+    const payment = text.match(/(?:₹|rs\.?|rupees?)\s?(\d+)/i)?.[1] || text.match(/\b(\d{3,5})\b/)?.[1] || "500";
+    const workers = text.match(/\b(\d+)\s?(helpers?|workers?|people|staff)\b/i)?.[1] || "1";
+    const title = lower.includes("waiter") ? "Waiter" : lower.includes("shop") ? "Shop Helper" : "Helper";
+    res.json({
+      parsed: {
+        title,
+        description: `Flexible ${title.toLowerCase()} shift created from employer request.`,
+        category: lower.includes("shop") ? "Retail" : lower.includes("cafe") || lower.includes("restaurant") ? "Cafe" : "General",
+        requiredSkills: lower.includes("shop") ? ["Stocking", "Customer handling"] : ["Customer handling", "Basic communication"],
+        workersRequired: Number(workers),
+        date: lower.includes("tomorrow") ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
+        startTime: text.match(/\b(\d{1,2})\s?(am|pm)\b/i)?.[0]?.toUpperCase() || "5 PM",
+        endTime: text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)?.[1] ? `${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[1]} ${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[2].toUpperCase()}` : "9 PM",
+        duration: "4h",
+        paymentType: "fixed",
+        paymentAmount: Number(payment),
+        location: "Indiranagar"
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/mine", requireAuth, async (req, res, next) => {
+  try {
+    if (req.user.role === "employer") {
+      const shifts = await Shift.find({ employerId: req.user._id }).sort({ createdAt: -1 });
+      return res.json({ shifts: await Promise.all(shifts.map((shift) => serializeShift(shift))) });
+    }
+
+    const applications = await Application.find({ workerId: req.user._id }).populate("shiftId").sort({ createdAt: -1 });
+    const workerProfile = await WorkerProfile.findOne({ userId: req.user._id });
+    const shifts = await Promise.all(applications.filter((app) => app.shiftId).map((app) => serializeShift(app.shiftId, workerProfile, req.user._id)));
+    res.json({ shifts });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id", requireAuth, async (req, res, next) => {
+  try {
+    const shift = await Shift.findById(req.params.id);
+    if (!shift) return res.status(404).json({ message: "Shift not found" });
+    const application = await Application.findOne({ shiftId: shift._id, workerId: req.user._id });
+    const canView =
+      shift.status === "published" ||
+      shift.employerId.equals(req.user._id) ||
+      shift.assignedWorkerIds.some((id) => id.equals(req.user._id)) ||
+      Boolean(application);
+    if (!canView) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    const workerProfile = req.user.role === "worker" ? await WorkerProfile.findOne({ userId: req.user._id }) : null;
+    res.json({ shift: await serializeShift(shift, workerProfile, req.user._id) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/:id/apply", requireAuth, requireRole("worker"), async (req, res, next) => {
+  try {
+    const shift = await Shift.findById(req.params.id);
+    if (!shift) return res.status(404).json({ message: "Shift not found" });
+    if (shift.status !== "published") return res.status(409).json({ message: "Shift is not open" });
+    if (shift.assignedWorkerIds.length >= shift.workersRequired) return res.status(409).json({ message: "Shift is already full" });
+
+    const application = await Application.create({ shiftId: shift._id, workerId: req.user._id });
+    await Notification.create({ userId: shift.employerId, message: `${req.user.name} applied for ${shift.title}` });
+    res.status(201).json({ application, message: "Application submitted" });
+  } catch (error) {
+    if (error.code === 11000) return res.status(409).json({ message: "You already applied for this shift" });
+    next(error);
+  }
+});
+
+router.get("/:id/applications", requireAuth, requireRole("employer"), async (req, res, next) => {
+  try {
+    const shift = await Shift.findById(req.params.id);
+    if (!shift) return res.status(404).json({ message: "Shift not found" });
+    if (!shift.employerId.equals(req.user._id)) return res.status(403).json({ message: "Forbidden" });
+
+    const applications = await Application.find({ shiftId: shift._id }).populate("workerId").sort({ createdAt: -1 });
+    res.json({
+      applications: await Promise.all(
+        applications.map(async (application) => {
+          const profile = await WorkerProfile.findOne({ userId: application.workerId._id });
+          return {
+            id: application._id.toString(),
+            status: application.status,
+            appliedAt: application.appliedAt,
+            worker: application.workerId,
+            profile
+          };
+        })
+      )
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.patch("/applications/:applicationId", requireAuth, requireRole("employer"), async (req, res, next) => {
+  const session = await mongoose.startSession();
+  try {
+    let payload;
+    await session.withTransaction(async () => {
+      const body = z.object({ status: z.enum(["accepted", "rejected"]) }).parse(req.body);
+      const application = await Application.findById(req.params.applicationId).session(session);
+      if (!application) throw Object.assign(new Error("Application not found"), { status: 404 });
+      const shift = await Shift.findById(application.shiftId).session(session);
+      if (!shift) throw Object.assign(new Error("Shift not found"), { status: 404 });
+      if (!shift.employerId.equals(req.user._id)) throw Object.assign(new Error("Forbidden"), { status: 403 });
+
+      if (body.status === "accepted") {
+        if (shift.assignedWorkerIds.length >= shift.workersRequired && !shift.assignedWorkerIds.some((id) => id.equals(application.workerId))) {
+          throw Object.assign(new Error("Shift is already full"), { status: 409 });
+        }
+        application.status = "accepted";
+        application.acceptedAt = new Date();
+        if (!shift.assignedWorkerIds.some((id) => id.equals(application.workerId))) {
+          shift.assignedWorkerIds.push(application.workerId);
+        }
+        if (shift.assignedWorkerIds.length >= shift.workersRequired) shift.status = "filled";
+        await Attendance.updateOne(
+          { shiftId: shift._id, workerId: application.workerId },
+          { $setOnInsert: { status: "scheduled" } },
+          { upsert: true, session }
+        );
+        await Notification.create([{ userId: application.workerId, message: `You were accepted for ${shift.title}` }], { session });
+      } else {
+        application.status = "rejected";
+        application.rejectedAt = new Date();
+      }
+
+      await application.save({ session });
+      await shift.save({ session });
+      payload = { application, shift: await serializeShift(shift) };
+    });
+    res.json(payload);
+  } catch (error) {
+    next(error);
+  } finally {
+    session.endSession();
+  }
+});
+
+export default router;

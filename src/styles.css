@@ -26,8 +26,9 @@ body {
   background: var(--surface-2);
   color: var(--ink);
 }
-button, textarea { font: inherit; }
+button, textarea, input, select { font: inherit; }
 button { cursor: pointer; }
+button:disabled { cursor: not-allowed; opacity: 0.62; transform: none; }
 a { color: inherit; text-decoration: none; }
 
 .hero {
@@ -295,7 +296,7 @@ main { overflow: hidden; }
   overflow-x: auto;
   padding-bottom: 8px;
 }
-.day { padding: 16px; min-height: 160px; }
+.day { padding: 16px; min-height: 160px; text-align: left; color: var(--ink); }
 .day strong { display: block; margin-bottom: 12px; }
 .day small { color: var(--muted); }
 .timeline {
@@ -334,6 +335,58 @@ textarea {
   padding: 14px;
   color: var(--ink);
 }
+input, select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 0 12px;
+  background: white;
+  color: var(--ink);
+}
+.form-grid, .filter-row {
+  display: grid;
+  gap: 12px;
+}
+.filter-row {
+  grid-template-columns: 1fr 0.7fr 0.55fr;
+  margin-bottom: 14px;
+}
+.auth-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.auth-panel p, .muted { color: var(--muted); }
+.notice {
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-top: 12px;
+  font-weight: 700;
+}
+.notice.success {
+  color: var(--green);
+  background: var(--green-soft);
+  border: 1px solid #b9ebd7;
+}
+.notice.error {
+  color: var(--red);
+  background: #fff0f1;
+  border: 1px solid #ffd0d5;
+}
+.empty-state {
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 18px;
+  color: var(--muted);
+  background: var(--surface-2);
+  margin: 12px 0;
+  line-height: 1.55;
+}
+.compact-form label { display: block; }
+.compact-form input { margin-top: 5px; }
+.save-availability, .shifts-panel { margin-top: 18px; }
 .parsed {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -433,7 +486,7 @@ footer {
   .hero-content p:not(.eyebrow) { font-size: 1rem; }
   .hero-actions, .button-row { align-items: stretch; flex-direction: column; }
   .primary, .secondary { width: 100%; }
-  .steps, .stats-row, .detail-grid, .parsed { grid-template-columns: 1fr; }
+  .steps, .stats-row, .detail-grid, .parsed, .filter-row { grid-template-columns: 1fr; }
   .worker-card { grid-template-columns: 44px 1fr; }
   .worker-card b, .worker-card .icon-button { grid-column: span 1; }
 }

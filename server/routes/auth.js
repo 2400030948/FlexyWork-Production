@@ -1,0 +1,95 @@
+import bcrypt from "bcryptjs";
+import express from "express";
+import jwt from "jsonwebtoken";
+import { z } from "zod";
+import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
+import { User } from "../models/User.js";
+import { requireAuth } from "../middleware/auth.js";
+
+const router = express.Router();
+const cookieOptions = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  maxAge: 1000 * 60 * 60 * 24 * 7
+};
+
+const registerSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+  password: z.string().min(6),
+  role: z.enum(["worker", "employer"]),
+  location: z.string().min(2).optional(),
+  businessName: z.string().optional()
+});
+
+function sign(user) {
+  return jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+}
+
+async function createProfile(user, body) {
+  if (user.role === "worker") {
+    return WorkerProfile.create({
+      userId: user._id,
+      location: body.location || user.location,
+      skills: ["Customer handling", "Table service", "Billing support"],
+      availability: [
+        { day: "Mon", status: "Available", ranges: ["6 PM - 10 PM"] },
+        { day: "Tue", status: "Available", ranges: ["6 PM - 10 PM"] },
+        { day: "Wed", status: "Unavailable", ranges: [] },
+        { day: "Thu", status: "Available", ranges: ["5 PM - 9 PM"] },
+        { day: "Fri", status: "Available", ranges: ["6 PM - 11 PM"] },
+        { day: "Sat", status: "Available", ranges: ["10 AM - 8 PM"] },
+        { day: "Sun", status: "Limited", ranges: ["11 AM - 3 PM"] }
+      ]
+    });
+  }
+
+  return EmployerProfile.create({
+    userId: user._id,
+    businessName: body.businessName || `${user.name}'s Business`,
+    location: body.location || user.location
+  });
+}
+
+router.post("/register", async (req, res, next) => {
+  try {
+    const body = registerSchema.parse(req.body);
+    const existing = await User.findOne({ email: body.email });
+    if (existing) return res.status(409).json({ message: "Email is already registered" });
+
+    const passwordHash = await bcrypt.hash(body.password, 12);
+    const user = await User.create({ ...body, passwordHash });
+    await createProfile(user, body);
+    res.cookie("flexywork_token", sign(user), cookieOptions).status(201).json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/login", async (req, res, next) => {
+  try {
+    const body = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
+    const user = await User.findOne({ email: body.email }).select("+passwordHash");
+    if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/logout", (_req, res) => {
+  res.clearCookie("flexywork_token").json({ ok: true });
+});
+
+router.get("/me", requireAuth, async (req, res) => {
+  const profile =
+    req.user.role === "worker"
+      ? await WorkerProfile.findOne({ userId: req.user._id })
+      : await EmployerProfile.findOne({ userId: req.user._id });
+  res.json({ user: req.user, profile });
+});
+
+export default router;
