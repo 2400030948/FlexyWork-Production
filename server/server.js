@@ -35,7 +35,7 @@ app.use((error, _req, res, _next) => {
 connectDb()
   .then(() => {
     app.listen(port, () => {
-      console.log(`FlexWork API listening on http://127.0.0.1:${port}`);
+      console.log(`FlexyWork API listening on http://127.0.0.1:${port}`);
     });
   })
   .catch((error) => {

@@ -1,5 +1,4 @@
 import express from "express";
-import mongoose from "mongoose";
 import { z } from "zod";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { Application } from "../models/Application.js";
@@ -207,47 +206,56 @@ router.get("/:id/applications", requireAuth, requireRole("employer"), async (req
 });
 
 router.patch("/applications/:applicationId", requireAuth, requireRole("employer"), async (req, res, next) => {
-  const session = await mongoose.startSession();
   try {
-    let payload;
-    await session.withTransaction(async () => {
-      const body = z.object({ status: z.enum(["accepted", "rejected"]) }).parse(req.body);
-      const application = await Application.findById(req.params.applicationId).session(session);
-      if (!application) throw Object.assign(new Error("Application not found"), { status: 404 });
-      const shift = await Shift.findById(application.shiftId).session(session);
-      if (!shift) throw Object.assign(new Error("Shift not found"), { status: 404 });
-      if (!shift.employerId.equals(req.user._id)) throw Object.assign(new Error("Forbidden"), { status: 403 });
+    const body = z.object({ status: z.enum(["accepted", "rejected"]) }).parse(req.body);
+    const application = await Application.findById(req.params.applicationId);
+    if (!application) return res.status(404).json({ message: "Application not found" });
 
-      if (body.status === "accepted") {
-        if (shift.assignedWorkerIds.length >= shift.workersRequired && !shift.assignedWorkerIds.some((id) => id.equals(application.workerId))) {
-          throw Object.assign(new Error("Shift is already full"), { status: 409 });
-        }
-        application.status = "accepted";
-        application.acceptedAt = new Date();
-        if (!shift.assignedWorkerIds.some((id) => id.equals(application.workerId))) {
-          shift.assignedWorkerIds.push(application.workerId);
-        }
-        if (shift.assignedWorkerIds.length >= shift.workersRequired) shift.status = "filled";
-        await Attendance.updateOne(
-          { shiftId: shift._id, workerId: application.workerId },
-          { $setOnInsert: { status: "scheduled" } },
-          { upsert: true, session }
-        );
-        await Notification.create([{ userId: application.workerId, message: `You were accepted for ${shift.title}` }], { session });
-      } else {
-        application.status = "rejected";
-        application.rejectedAt = new Date();
-      }
+    let shift = await Shift.findById(application.shiftId);
+    if (!shift) return res.status(404).json({ message: "Shift not found" });
+    if (!shift.employerId.equals(req.user._id)) return res.status(403).json({ message: "Forbidden" });
 
-      await application.save({ session });
-      await shift.save({ session });
-      payload = { application, shift: await serializeShift(shift) };
-    });
-    res.json(payload);
+    if (body.status === "rejected") {
+      application.status = "rejected";
+      application.rejectedAt = new Date();
+      await application.save();
+      return res.json({ application, shift: await serializeShift(shift) });
+    }
+
+    const alreadyAssigned = shift.assignedWorkerIds.some((id) => id.equals(application.workerId));
+    if (!alreadyAssigned) {
+      shift = await Shift.findOneAndUpdate(
+        {
+          _id: shift._id,
+          employerId: req.user._id,
+          assignedWorkerIds: { $ne: application.workerId },
+          $expr: { $lt: [{ $size: "$assignedWorkerIds" }, "$workersRequired"] }
+        },
+        { $push: { assignedWorkerIds: application.workerId } },
+        { new: true }
+      );
+
+      if (!shift) return res.status(409).json({ message: "Shift is already full" });
+    }
+
+    application.status = "accepted";
+    application.acceptedAt = new Date();
+    if (shift.assignedWorkerIds.length >= shift.workersRequired) {
+      shift.status = "filled";
+      await shift.save();
+    }
+
+    await application.save();
+    await Attendance.updateOne(
+      { shiftId: shift._id, workerId: application.workerId },
+      { $setOnInsert: { status: "scheduled" } },
+      { upsert: true }
+    );
+    await Notification.create({ userId: application.workerId, message: `You were accepted for ${shift.title}` });
+
+    res.json({ application, shift: await serializeShift(shift) });
   } catch (error) {
     next(error);
-  } finally {
-    session.endSession();
   }
 });
 

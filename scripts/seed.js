@@ -32,9 +32,9 @@ async function upsertUser({ name, email, role, location }) {
 await connectDb();
 await Promise.all([Application.deleteMany({}), Attendance.deleteMany({}), Notification.deleteMany({}), Shift.deleteMany({})]);
 
-const employer = await upsertUser({ name: "Priya Nair", email: "employer@flexwork.local", role: "employer", location: "Indiranagar" });
-const worker = await upsertUser({ name: "Rahul Sharma", email: "worker@flexwork.local", role: "worker", location: "Indiranagar" });
-const aisha = await upsertUser({ name: "Aisha Khan", email: "aisha@flexwork.local", role: "worker", location: "Domlur" });
+const employer = await upsertUser({ name: "Priya Nair", email: "employer@flexywork.local", role: "employer", location: "Indiranagar" });
+const worker = await upsertUser({ name: "Rahul Sharma", email: "worker@flexywork.local", role: "worker", location: "Indiranagar" });
+const aisha = await upsertUser({ name: "Aisha Khan", email: "aisha@flexywork.local", role: "worker", location: "Domlur" });
 
 await EmployerProfile.findOneAndUpdate(
   { userId: employer._id },
@@ -127,5 +127,5 @@ await Shift.insertMany([
   }
 ]);
 
-console.log("Seed complete. Demo logins: worker@flexwork.local / password123, employer@flexwork.local / password123");
+console.log("Seed complete. Demo logins: worker@flexywork.local / password123, employer@flexywork.local / password123");
 process.exit(0);
