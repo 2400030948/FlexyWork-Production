@@ -154,10 +154,10 @@ function ShiftCard({ shift, selected, onClick }) {
 function Landing({ setRole }) {
   return (
     <section className="hero" id="home">
-      <img src="/flexwork-hero.png" alt="Local worker accepting a flexible shift at a neighborhood cafe" />
+      <img src="/flexywork-hero.png" alt="Local worker accepting a flexible shift at a neighborhood cafe" />
       <div className="hero-overlay" />
       <nav className="nav">
-        <a className="brand" href="#home"><BriefcaseBusiness size={22} />FlexWork</a>
+        <a className="brand" href="#home"><BriefcaseBusiness size={22} />FlexyWork</a>
         <div>
           <a href="#worker">Workers</a>
           <a href="#employer">Employers</a>
@@ -167,7 +167,7 @@ function Landing({ setRole }) {
       <div className="hero-content">
         <p className="eyebrow"><Sparkles size={16} />AI-powered local shift matching</p>
         <h1>Work when you want. Hire when you need.</h1>
-        <p>FlexWork connects local businesses with reliable workers for hourly, daily, recurring, and on-demand shifts.</p>
+        <p>FlexyWork connects local businesses with reliable workers for hourly, daily, recurring, and on-demand shifts.</p>
         <div className="hero-actions">
           <button className="primary" onClick={() => setRole("worker")}>Find Work <ChevronRight size={18} /></button>
           <button className="secondary" onClick={() => setRole("employer")}>Hire Workers</button>
@@ -419,7 +419,7 @@ function App() {
             <p className="eyebrow"><MessageSquareText size={16} />The gap</p>
             <h2>Need someone for 3 hours?</h2>
           </div>
-          <p>Traditional job platforms are built around resumes, interviews, and waiting. FlexWork starts with availability and turns urgent local need into a matched shift.</p>
+          <p>Traditional job platforms are built around resumes, interviews, and waiting. FlexyWork starts with availability and turns urgent local need into a matched shift.</p>
           <div className="steps">
             {["Set availability", "Match nearby", "Work the shift", "Get paid"].map((step, index) => <span key={step}>{index + 1}. {step}</span>)}
           </div>
@@ -433,7 +433,7 @@ function App() {
       </main>
       <footer>
         <BriefcaseBusiness size={20} />
-        <span>FlexWork · Right person. Right place. Right time.</span>
+        <span>FlexyWork · Right person. Right place. Right time.</span>
       </footer>
     </>
   );
