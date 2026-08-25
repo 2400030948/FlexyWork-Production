@@ -28,7 +28,7 @@ router.put("/me/availability", requireAuth, requireRole("worker"), async (req, r
     const profile = await WorkerProfile.findOneAndUpdate(
       { userId: req.user._id },
       { availability: body.availability },
-      { new: true }
+      { returnDocument: "after" }
     );
     res.json({ availability: profile.availability });
   } catch (error) {

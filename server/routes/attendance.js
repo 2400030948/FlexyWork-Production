@@ -14,7 +14,7 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
     const attendance = await Attendance.findOneAndUpdate(
       { shiftId: shift._id, workerId: req.user._id },
       { checkInAt: new Date(), status: "checked_in" },
-      { new: true, upsert: true }
+      { returnDocument: "after", upsert: true }
     );
     shift.status = "in_progress";
     await shift.save();

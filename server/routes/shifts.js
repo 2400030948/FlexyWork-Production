@@ -232,7 +232,7 @@ router.patch("/applications/:applicationId", requireAuth, requireRole("employer"
           $expr: { $lt: [{ $size: "$assignedWorkerIds" }, "$workersRequired"] }
         },
         { $push: { assignedWorkerIds: application.workerId } },
-        { new: true }
+        { returnDocument: "after" }
       );
 
       if (!shift) return res.status(409).json({ message: "Shift is already full" });

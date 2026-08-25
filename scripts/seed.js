@@ -25,7 +25,7 @@ async function upsertUser({ name, email, role, location }) {
   return User.findOneAndUpdate(
     { email },
     { name, email, role, location, passwordHash },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
+    { returnDocument: "after", upsert: true, setDefaultsOnInsert: true }
   );
 }
 
