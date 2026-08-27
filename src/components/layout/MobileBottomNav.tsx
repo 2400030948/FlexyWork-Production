@@ -1,0 +1,73 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { Home, Search, Calendar, Users, User, LayoutDashboard, Briefcase, IndianRupee } from 'lucide-react';
+import { db } from '../../mock/data';
+import { User as UserType } from '../../types';
+
+export default function MobileBottomNav() {
+  const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+
+  useEffect(() => {
+    const fetchUser = () => {
+      setCurrentUser(db.getCurrentUser());
+    };
+    fetchUser();
+    const interval = setInterval(fetchUser, 1500);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!currentUser) return null;
+
+  const isWorker = currentUser.role === 'worker';
+
+  // Seeker items
+  const seekerTabs = [
+    { label: 'Home', href: '/home', icon: Home },
+    { label: 'Explore', href: '/explore', icon: Search },
+    { label: 'Bookings', href: '/bookings', icon: Calendar },
+    { label: 'Collectives', href: '/community', icon: Users },
+    { label: 'Profile', href: '/profile', icon: User },
+  ];
+
+  // Worker items
+  const workerTabs = [
+    { label: 'Dashboard', href: '/worker', icon: LayoutDashboard },
+    { label: 'Gigs', href: '/worker/gigs', icon: Briefcase },
+    { label: 'Earnings', href: '/worker/earnings', icon: IndianRupee },
+    { label: 'Community', href: '/worker/communities', icon: Users },
+    { label: 'Profile', href: '/worker/profile', icon: User },
+  ];
+
+  const activeTabs = isWorker ? workerTabs : seekerTabs;
+
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border bg-white/95 backdrop-blur-md pb-safe md:hidden">
+      <div className="flex h-16 items-center justify-around px-2">
+        {activeTabs.map((tab) => {
+          const Icon = tab.icon;
+          // Exact match or matches starting path (except home)
+          const isActive = tab.href === '/home' || tab.href === '/worker'
+            ? pathname === tab.href
+            : pathname.startsWith(tab.href);
+
+          return (
+            <Link
+              key={tab.label}
+              href={tab.href}
+              className={`flex flex-col items-center justify-center flex-1 py-2 text-xxs font-medium transition-colors ${
+                isActive ? 'text-brand-600' : 'text-ink-subtle hover:text-ink-muted'
+              }`}
+            >
+              <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
+              <span className="mt-1 text-[10px] tracking-wide">{tab.label}</span>
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
