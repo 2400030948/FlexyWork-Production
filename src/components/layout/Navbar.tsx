@@ -1,0 +1,267 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter, usePathname } from 'next/navigation';
+import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield } from 'lucide-react';
+import { db } from '../../mock/data';
+import { User as UserType } from '../../types';
+
+export default function Navbar() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    // Poll local database state
+    const fetchUser = () => {
+      const user = db.getCurrentUser();
+      setCurrentUser(user);
+
+      if (user) {
+        const notifs = db.getNotifications();
+        const unread = notifs.filter(n => n.userId === user.id && !n.read).length;
+        setUnreadCount(unread);
+      }
+    };
+
+    fetchUser();
+    const interval = setInterval(fetchUser, 1500); // Live poll for mock database updates
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleRole = () => {
+    if (!currentUser) return;
+    
+    const users = db.getUsers();
+    let targetUser: UserType | undefined;
+
+    if (currentUser.role === 'seeker') {
+      // Switch to Priya (Worker)
+      targetUser = users.find(u => u.role === 'worker');
+    } else {
+      // Switch to Harshita (Seeker)
+      targetUser = users.find(u => u.role === 'seeker');
+    }
+
+    if (targetUser) {
+      db.setCurrentUser(targetUser);
+      setCurrentUser(targetUser);
+      setShowDropdown(false);
+      
+      // Redirect based on new role
+      if (targetUser.role === 'worker') {
+        router.push('/worker');
+      } else {
+        router.push('/home');
+      }
+    }
+  };
+
+  const handleLogout = () => {
+    db.setCurrentUser(null);
+    setCurrentUser(null);
+    setShowDropdown(false);
+    router.push('/');
+  };
+
+  // Determine active portal context based on current route
+  const isWorkerPortal = pathname.startsWith('/worker');
+  const isAdminPortal = pathname.startsWith('/admin');
+
+  return (
+    <header className="sticky top-0 z-40 w-full border-b border-surface-border bg-white/80 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        
+        {/* Brand Logo */}
+        <div className="flex items-center gap-6">
+          <Link href={currentUser ? (currentUser.role === 'worker' ? '/worker' : '/home') : '/'} className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-500 text-white font-bold text-lg shadow-sm shadow-brand-500/20">
+              F
+            </span>
+            <span className="font-extrabold text-xl tracking-tight text-ink">
+              FLEXY<span className="text-brand-500 font-semibold">WORK</span>
+            </span>
+          </Link>
+
+          {/* Desktop Navigation */}
+          {currentUser && !isAdminPortal && (
+            <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-ink-muted">
+              {currentUser.role === 'seeker' ? (
+                <>
+                  <Link href="/home" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/home' ? 'text-ink font-semibold' : ''}`}>
+                    Dashboard
+                  </Link>
+                  <Link href="/explore" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/explore' ? 'text-ink font-semibold' : ''}`}>
+                    Find Services
+                  </Link>
+                  <Link href="/bookings" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/bookings') ? 'text-ink font-semibold' : ''}`}>
+                    Bookings
+                  </Link>
+                  <Link href="/community" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/community') ? 'text-ink font-semibold' : ''}`}>
+                    Collectives
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link href="/worker" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker' ? 'text-ink font-semibold' : ''}`}>
+                    Command Center
+                  </Link>
+                  <Link href="/worker/gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/gigs' ? 'text-ink font-semibold' : ''}`}>
+                    My Gigs
+                  </Link>
+                  <Link href="/worker/earnings" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/earnings' ? 'text-ink font-semibold' : ''}`}>
+                    Earnings
+                  </Link>
+                  <Link href="/worker/communities" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/communities' ? 'text-ink font-semibold' : ''}`}>
+                    Communities
+                  </Link>
+                </>
+              )}
+            </nav>
+          )}
+
+          {!currentUser && (
+            <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-ink-muted">
+              <Link href="/how-it-works" className="px-3 py-2 transition-colors hover:text-ink">
+                How it works
+              </Link>
+              <Link href="/community" className="px-3 py-2 transition-colors hover:text-ink">
+                Communities
+              </Link>
+            </nav>
+          )}
+        </div>
+
+        {/* Action Controls */}
+        <div className="flex items-center gap-4">
+          
+          {currentUser && (
+            <>
+              {/* Quick Role Switcher Banner Tag (For judges) */}
+              <button 
+                onClick={toggleRole} 
+                className="hidden sm:flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-100"
+                title="Quick switch between Seeker and Worker view for testing"
+              >
+                <RefreshCw size={13} className="animate-spin-slow" />
+                Demo: {currentUser.role === 'seeker' ? 'Seeker Portal' : 'Worker Portal'}
+              </button>
+
+              {/* Notifications */}
+              <Link 
+                href={currentUser.role === 'worker' ? '/worker/gigs' : '/notifications'} 
+                className="relative p-1.5 text-ink-muted hover:text-ink hover:bg-surface-card rounded-full transition-all"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 flex h-2.5 w-2.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                  </span>
+                )}
+              </Link>
+
+              {/* Admin Access Panel Link if admin */}
+              {currentUser.role === 'admin' && !isAdminPortal && (
+                <Link 
+                  href="/admin" 
+                  className="flex items-center gap-1 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2.5 py-1 rounded"
+                >
+                  <Shield size={14} /> Admin
+                </Link>
+              )}
+
+              {/* Profile Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowDropdown(!showDropdown)}
+                  className="flex items-center gap-2 p-1 rounded-full hover:bg-surface-card transition-all"
+                >
+                  <div className="h-8 w-8 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold text-sm border border-brand-200">
+                    {currentUser.name.charAt(0)}
+                  </div>
+                </button>
+
+                {showDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 origin-top-right rounded-xl border border-surface-border bg-white py-1 shadow-lg ring-1 ring-black/5 animate-in fade-in slide-in-from-top-2 duration-150">
+                    <div className="px-4 py-2.5 border-b border-surface-border">
+                      <p className="text-sm font-semibold text-ink">{currentUser.name}</p>
+                      <p className="text-xs text-ink-muted truncate">{currentUser.email}</p>
+                    </div>
+
+                    <div className="py-1">
+                      <button
+                        onClick={toggleRole}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                      >
+                        <RefreshCw size={15} />
+                        Switch to {currentUser.role === 'seeker' ? 'Worker View' : 'Seeker View'}
+                      </button>
+
+                      {currentUser.role === 'seeker' ? (
+                        <Link
+                          href="/profile"
+                          onClick={() => setShowDropdown(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                        >
+                          <User size={15} />
+                          My Profile
+                        </Link>
+                      ) : (
+                        <Link
+                          href="/worker/profile"
+                          onClick={() => setShowDropdown(false)}
+                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                        >
+                          <User size={15} />
+                          Worker Profile
+                        </Link>
+                      )}
+
+                      <Link
+                        href="/admin"
+                        onClick={() => setShowDropdown(false)}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                      >
+                        <Shield size={15} />
+                        Admin Dashboard
+                      </Link>
+                    </div>
+
+                    <div className="border-t border-surface-border py-1">
+                      <button
+                        onClick={handleLogout}
+                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 transition-colors"
+                      >
+                        <LogOut size={15} />
+                        Sign out
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {!currentUser && (
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-sm font-semibold text-ink-muted hover:text-ink transition-colors">
+                Login
+              </Link>
+              <Link 
+                href="/signup" 
+                className="rounded-xl bg-brand-500 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-600 transition-colors"
+              >
+                Get Started
+              </Link>
+            </div>
+          )}
+        </div>
+
+      </div>
+    </header>
+  );
+}
