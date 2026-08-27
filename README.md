@@ -6,21 +6,6 @@ FlexyWork is a community-driven gig marketplace that connects **local service se
 
 ---
 
-## 📌 Table of Contents
-
-1. [Problem Statement](#-problem-statement)
-2. [Our Solution](#-our-solution)
-3. [Key Features](#-key-features)
-4. [Tech Stack](#-tech-stack)
-5. [Stakeholders](#-stakeholders)
-6. [UML Diagrams](#-uml-diagrams)
-7. [Project Structure](#-project-structure)
-8. [Getting Started](#-getting-started)
-9. [Future Roadmap](#-future-roadmap)
-10. [Team](#-team)
-
----
-
 ## ❗ Problem Statement
 
 India's urban and semi-urban service economy is fragmented:
@@ -46,7 +31,119 @@ FlexyWork is a **two-sided cooperative gig platform** with three pillars:
 
 The platform is designed around **trust, transparency, and dignity of work**.
 
+FLEXYWORK bridges this gap.
+
+        STUDENTS
+            │
+            │ Skills
+            ▼
+      ┌─────────────┐
+      │  FLEXYWORK  │
+      └─────────────┘
+            ▲
+            │ Opportunities
+            │
+        CLIENTS
+
 ---
+
+🗄️ ER Diagram
+erDiagram
+
+    USER ||--o{ GIG : creates
+    USER ||--o{ APPLICATION : submits
+    GIG ||--o{ APPLICATION : receives
+
+    APPLICATION ||--|| CONTRACT : creates
+
+    USER ||--o{ CONTRACT : student
+    USER ||--o{ CONTRACT : client
+
+    CONTRACT ||--o{ SUBMISSION : contains
+    CONTRACT ||--|| PAYMENT : generates
+
+    CONTRACT ||--o{ REVIEW : receives
+
+    USER ||--o{ NOTIFICATION : receives
+    USER ||--o{ MESSAGE : sends
+
+    USER {
+        UUID id PK
+        string name
+        string email
+        string password
+        string role
+    }
+
+    GIG {
+        UUID id PK
+        UUID client_id FK
+        string title
+        string description
+        string category
+        decimal budget
+        date deadline
+        string status
+    }
+
+    APPLICATION {
+        UUID id PK
+        UUID gig_id FK
+        UUID student_id FK
+        string proposal
+        decimal proposed_price
+        string status
+    }
+
+    CONTRACT {
+        UUID id PK
+        UUID gig_id FK
+        UUID student_id FK
+        UUID client_id FK
+        decimal amount
+        string status
+    }
+
+    SUBMISSION {
+        UUID id PK
+        UUID contract_id FK
+        string file_url
+        string description
+        string status
+    }
+
+    PAYMENT {
+        UUID id PK
+        UUID contract_id FK
+        decimal amount
+        string payment_method
+        string status
+    }
+
+    REVIEW {
+        UUID id PK
+        UUID contract_id FK
+        UUID reviewer_id FK
+        UUID reviewee_id FK
+        integer rating
+        string comment
+    }
+
+    NOTIFICATION {
+        UUID id PK
+        UUID user_id FK
+        string message
+        boolean is_read
+    }
+
+    MESSAGE {
+        UUID id PK
+        UUID sender_id FK
+        UUID receiver_id FK
+        string message
+        datetime timestamp
+    }
+    
 
 ## ✨ Key Features
 
