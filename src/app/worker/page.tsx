@@ -59,9 +59,9 @@ export default function WorkerDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
         <div>
           <h1 className="text-2xl font-extrabold text-ink tracking-tight">
-            Good morning, {currentUser?.name.split(' ')[0] || 'Priya'}
+            Good morning, {currentUser?.name.split(' ')[0] || 'Worker'}
           </h1>
-          <p className="text-xs text-ink-muted mt-0.5 font-medium">Vijayawada Collective Member</p>
+          <p className="text-xs text-ink-muted mt-0.5 font-medium">{currentUser?.location || 'Indiranagar'} Collective Member</p>
         </div>
         <div className="flex gap-2">
           <button

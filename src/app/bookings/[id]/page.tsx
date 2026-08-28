@@ -132,7 +132,7 @@ export default function BookingDetailPage() {
                   Worker Matched & Confirmed
                 </p>
                 {getStepStatus('accepted') === 'done' ? (
-                  <p className="text-[10px] text-ink-muted mt-0.5">Assigned to Priya Sharma. Service contract locked.</p>
+                  <p className="text-[10px] text-ink-muted mt-0.5">Assigned to verified worker. Service contract locked.</p>
                 ) : (
                   <p className="text-[10px] text-ink-subtle mt-0.5">Waiting for provider confirmation.</p>
                 )}
