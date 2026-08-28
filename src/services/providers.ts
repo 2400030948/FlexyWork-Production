@@ -26,6 +26,15 @@ export async function getProviders(filters?: {
   return workers;
 }
 
+export async function getMyWorkerProfile(): Promise<WorkerProfile | null> {
+  try {
+    const data = await apiCall<{ worker: WorkerProfile }>('/api/workers/me');
+    return data.worker;
+  } catch {
+    return null;
+  }
+}
+
 export async function getProviderById(id: string): Promise<WorkerProfile | null> {
   try {
     const data = await apiCall<{ worker: WorkerProfile }>(`/api/workers/${id}`);

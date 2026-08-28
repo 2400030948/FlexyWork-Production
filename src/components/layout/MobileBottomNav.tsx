@@ -16,9 +16,13 @@ export default function MobileBottomNav() {
       setCurrentUser(await getMe());
     };
     fetchUser();
-    const interval = setInterval(fetchUser, 30000);
-    return () => clearInterval(interval);
-  }, []);
+    window.addEventListener('auth-change', fetchUser);
+    const interval = setInterval(fetchUser, 15000);
+    return () => {
+      window.removeEventListener('auth-change', fetchUser);
+      clearInterval(interval);
+    };
+  }, [pathname]);
 
   if (!currentUser) return null;
 

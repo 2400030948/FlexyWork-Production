@@ -23,6 +23,9 @@ export async function login(email: string, password: string): Promise<User> {
     method: 'POST',
     body: JSON.stringify({ email, password })
   });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth-change'));
+  }
   return fromApiUser(data.user);
 }
 
@@ -45,11 +48,17 @@ export async function signup(
       businessName
     })
   });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth-change'));
+  }
   return fromApiUser(data.user);
 }
 
 export async function logout(): Promise<void> {
   await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new Event('auth-change'));
+  }
 }
 
 export async function getMe(): Promise<User | null> {

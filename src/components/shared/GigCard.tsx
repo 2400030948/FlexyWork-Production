@@ -23,7 +23,7 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
     setLoading(true);
     setError('');
     try {
-      await acceptGig(gig.id, '');
+      await acceptGig(gig.id);
       if (onActionComplete) onActionComplete();
     } catch (err: any) {
       setError(err.message || 'Failed to accept gig.');

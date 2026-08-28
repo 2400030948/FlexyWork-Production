@@ -13,6 +13,8 @@ import EarningsChart from '../../components/charts/EarningsChart';
 import EmptyState from '../../components/ui/EmptyState';
 import { getMe } from '../../services/auth';
 import { getGigs, getMyGigs } from '../../services/gigs';
+import { getMyWorkerProfile } from '../../services/providers';
+import { getPayments } from '../../services/payments';
 
 export default function WorkerDashboard() {
   const router = useRouter();
@@ -20,6 +22,7 @@ export default function WorkerDashboard() {
   const [activeGigs, setActiveGigs] = useState<Gig[]>([]);
   const [opportunities, setOpportunities] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [workerStats, setWorkerStats] = useState({ rating: 0, completedGigsCount: 0, reliabilityScore: 0, grossEarnings: 0 });
 
   const fetchWorkerDashboardData = async () => {
     setLoading(true);
@@ -36,13 +39,20 @@ export default function WorkerDashboard() {
       return;
     }
 
-    const [opps, myGigs] = await Promise.all([getGigs(), getMyGigs(user.id, user.role)]);
+    const [opps, myGigs, profile, payments] = await Promise.all([getGigs(), getMyGigs(user.id, user.role), getMyWorkerProfile(), getPayments()]);
     setOpportunities(opps.filter((gig) => 
       gig.status === 'REQUESTED' && 
       !gig.assignedWorkerIds?.includes(user.id) && 
       (gig.assignedWorkerIds?.length || 0) < (gig.workersRequired || 1)
     ));
     setActiveGigs(myGigs.filter((gig) => gig.status !== 'COMPLETED' && gig.status !== 'DECLINED'));
+    const gross = payments.reduce((sum, tx) => sum + tx.amount, 0);
+    setWorkerStats({
+      rating: profile?.rating || 0,
+      completedGigsCount: profile?.completedGigsCount || 0,
+      reliabilityScore: profile?.reliabilityScore || 0,
+      grossEarnings: gross
+    });
     setLoading(false);
   };
 
@@ -87,8 +97,8 @@ export default function WorkerDashboard() {
             <span className="text-xxs font-extrabold uppercase tracking-wider">Earnings (Month)</span>
             <IndianRupee size={16} className="text-brand-500" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">₹18,450</p>
-          <p className="text-[10px] text-emerald-600 font-bold">↑ 12% vs last month</p>
+          <p className="text-xl sm:text-2xl font-black text-ink">₹{workerStats.grossEarnings.toLocaleString('en-IN')}</p>
+          <p className="text-[10px] text-emerald-600 font-bold">Total earnings</p>
         </div>
 
         {/* Metric 2 */}
@@ -97,8 +107,8 @@ export default function WorkerDashboard() {
             <span className="text-xxs font-extrabold uppercase tracking-wider">Completed Gigs</span>
             <CheckCircle size={16} className="text-indigo-500" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">27</p>
-          <p className="text-[10px] text-ink-subtle font-bold">14 cooperative pool gigs</p>
+          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.completedGigsCount}</p>
+          <p className="text-[10px] text-ink-subtle font-bold">Total completed</p>
         </div>
 
         {/* Metric 3 */}
@@ -107,7 +117,7 @@ export default function WorkerDashboard() {
             <span className="text-xxs font-extrabold uppercase tracking-wider">Reliability Score</span>
             <ShieldCheck size={16} className="text-emerald-500" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">98%</p>
+          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.reliabilityScore}%</p>
           <p className="text-[10px] text-emerald-600 font-bold">Top 5% of collective</p>
         </div>
 
@@ -117,8 +127,8 @@ export default function WorkerDashboard() {
             <span className="text-xxs font-extrabold uppercase tracking-wider">Overall Rating</span>
             <Star size={16} className="fill-amber-400 text-amber-400" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">4.9/5</p>
-          <p className="text-[10px] text-ink-subtle font-bold">128 total reviews</p>
+          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.rating > 0 ? `${workerStats.rating}/5` : '—'}</p>
+          <p className="text-[10px] text-ink-subtle font-bold">Based on reviews</p>
         </div>
 
       </div>
