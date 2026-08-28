@@ -6,6 +6,7 @@ import {
   ChevronRight, ChevronLeft, Calendar, MapPin, IndianRupee, 
   Sparkles, CheckCircle, Clock, Check, Briefcase, FileText 
 } from 'lucide-react';
+import { getMe } from '../../services/auth';
 import { getProviderById } from '../../services/providers';
 import { createGig } from '../../services/gigs';
 import { WorkerProfile } from '../../types';
@@ -85,9 +86,12 @@ function RequestServiceWizardContent() {
     setLoading(true);
     setError('');
     try {
-      // Calculate duration
-      const duration = '4h'; // Mock duration
-
+      const user = await getMe();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+      const duration = '4h';
       await createGig({
         title: `${category} Service Request`,
         description,

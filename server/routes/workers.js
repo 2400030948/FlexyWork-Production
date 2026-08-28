@@ -200,7 +200,7 @@ router.put("/me/availability", requireAuth, requireRole("worker"), async (req, r
   }
 });
 
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
     if (!objectIdPattern.test(req.params.id)) return res.status(404).json({ message: "Worker profile not found" });
 

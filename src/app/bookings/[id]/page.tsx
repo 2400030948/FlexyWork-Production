@@ -10,6 +10,7 @@ import {
 import { Gig } from '../../../types';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { getGigById } from '../../../services/gigs';
+import { getMe } from '../../../services/auth';
 
 export default function BookingDetailPage() {
   const params = useParams();
@@ -22,6 +23,11 @@ export default function BookingDetailPage() {
   useEffect(() => {
     const fetchGig = async () => {
       setLoading(true);
+      const user = await getMe();
+      if (!user) {
+        router.push('/login');
+        return;
+      }
       const data = await getGigById(gigId);
       setGig(data);
       setLoading(false);

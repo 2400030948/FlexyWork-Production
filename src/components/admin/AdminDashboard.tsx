@@ -149,23 +149,23 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1">
                   <p className="text-xxs font-extrabold text-ink-muted uppercase tracking-wider">Total Users Registered</p>
-                  <p className="text-xl sm:text-2xl font-black text-ink">4,500</p>
-                  <p className="text-[10px] text-emerald-600 font-bold">↑ 8% growth this week</p>
+                  <p className="text-xl sm:text-2xl font-black text-ink">{users.length}</p>
+                  <p className="text-[10px] text-emerald-600 font-bold">All registered accounts</p>
                 </div>
                 <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1">
                   <p className="text-xxs font-extrabold text-ink-muted uppercase tracking-wider">Active Gig Workers</p>
-                  <p className="text-xl sm:text-2xl font-black text-ink">320</p>
-                  <p className="text-[10px] text-ink-subtle font-bold">Vijayawada city limits</p>
+                  <p className="text-xl sm:text-2xl font-black text-ink">{workers.length}</p>
+                  <p className="text-[10px] text-ink-subtle font-bold">Verified worker profiles</p>
                 </div>
                 <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1">
-                  <p className="text-xxs font-extrabold text-ink-muted uppercase tracking-wider">Total Gigs Completed</p>
-                  <p className="text-xl sm:text-2xl font-black text-ink">828</p>
-                  <p className="text-[10px] text-emerald-600 font-bold">98% fulfillment rate</p>
+                  <p className="text-xxs font-extrabold text-ink-muted uppercase tracking-wider">Total Gigs Posted</p>
+                  <p className="text-xl sm:text-2xl font-black text-ink">{gigs.length}</p>
+                  <p className="text-[10px] text-emerald-600 font-bold">{gigs.filter(g => g.status === 'COMPLETED').length} completed</p>
                 </div>
                 <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1">
                   <p className="text-xxs font-extrabold text-ink-muted uppercase tracking-wider">Escrow Volume</p>
-                  <p className="text-xl sm:text-2xl font-black text-ink">₹4,82,500</p>
-                  <p className="text-[10px] text-ink-subtle font-bold">Platform commission: ₹48,250</p>
+                  <p className="text-xl sm:text-2xl font-black text-ink">₹{gigs.reduce((sum, g) => sum + (g.paymentAmount || 0), 0).toLocaleString('en-IN')}</p>
+                  <p className="text-[10px] text-ink-subtle font-bold">Total gig payout value</p>
                 </div>
               </div>
 

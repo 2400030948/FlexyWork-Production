@@ -146,7 +146,7 @@ export default function Navbar() {
 
               {/* Notifications */}
               <Link 
-                href={currentUser.role === 'worker' ? '/worker/gigs' : '/notifications'} 
+                href="/notifications" 
                 className="relative p-1.5 text-ink-muted hover:text-ink hover:bg-surface-card rounded-full transition-all"
               >
                 <Bell size={20} />

@@ -6,10 +6,11 @@ import Link from 'next/link';
 import { 
   Briefcase, Calendar, RefreshCw, Search, SlidersHorizontal, 
   Sparkles, Zap, IndianRupee, MapPin, Clock, CheckCircle, 
-  Users, CheckSquare, ShieldCheck, ArrowRight
+  Users, CheckSquare, ShieldCheck, ArrowRight, Hourglass, 
+  CheckCircle2, XCircle, Bell, AlertCircle
 } from 'lucide-react';
 import { Gig, User } from '../../../types';
-import { getGigs, getMyGigs, acceptGig, applyForGig } from '../../../services/gigs';
+import { getGigs, getMyGigs, applyForGig, acceptGig } from '../../../services/gigs';
 import GigCard from '../../../components/shared/GigCard';
 import EmptyState from '../../../components/ui/EmptyState';
 import { getMe } from '../../../services/auth';
@@ -20,16 +21,18 @@ function WorkerGigsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTab = searchParams.get('tab') === 'confirmed' ? 'confirmed' : 
+                     searchParams.get('tab') === 'applications' ? 'applications' :
                      searchParams.get('tab') === 'completed' ? 'completed' : 'available';
 
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [activeTab, setActiveTab] = useState<'available' | 'confirmed' | 'completed'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'available' | 'applications' | 'confirmed' | 'completed'>(initialTab);
   
   // Data States
   const [availableGigs, setAvailableGigs] = useState<Gig[]>([]);
   const [myGigs, setMyGigs] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // Search & Filter States for Available Gigs
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +56,6 @@ function WorkerGigsContent() {
         getMyGigs(user.id, 'worker')
       ]);
 
-      // Open available gigs (not yet filled by current user or other full quotas)
       setAvailableGigs(opps);
       setMyGigs(userShifts);
     } catch (e) {
@@ -65,31 +67,52 @@ function WorkerGigsContent() {
 
   useEffect(() => {
     fetchAllGigsData();
-    const interval = setInterval(fetchAllGigsData, 30000);
+    const interval = setInterval(fetchAllGigsData, 20000);
     return () => clearInterval(interval);
   }, []);
 
-  const handleQuickAccept = async (e: React.MouseEvent, gigId: string) => {
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 5000);
+  };
+
+  // Handle Applying for a Gig (Worker sends application for Employer to review)
+  const handleApply = async (e: React.MouseEvent, gigId: string, gigTitle: string) => {
     e.preventDefault();
     e.stopPropagation();
     setActionLoading(gigId);
     try {
-      await acceptGig(gigId);
+      await applyForGig(gigId);
+      showToast(`Application submitted for "${gigTitle}"! Employer has been notified to review your profile.`);
       await fetchAllGigsData();
-      setActiveTab('confirmed');
     } catch (err: any) {
-      alert(err.message || 'Could not accept gig');
+      alert(err.message || 'Could not submit application');
     } finally {
       setActionLoading(null);
     }
   };
 
+  // Check application status for a gig
+  const getGigApplicationStatus = (gig: Gig): 'none' | 'pending' | 'accepted' | 'rejected' => {
+    if (gig.assignedWorkerIds?.includes(currentUser?.id || '')) return 'accepted';
+    if (gig.applicationStatus === 'accepted') return 'accepted';
+    if (gig.applicationStatus === 'pending') return 'pending';
+    if (gig.applicationStatus === 'rejected') return 'rejected';
+
+    // Also check inside myGigs if recorded
+    const inMyGigs = myGigs.find(g => g.id === gig.id);
+    if (inMyGigs) {
+      if (inMyGigs.assignedWorkerIds?.includes(currentUser?.id || '')) return 'accepted';
+      if (inMyGigs.applicationStatus === 'accepted') return 'accepted';
+      if (inMyGigs.applicationStatus === 'pending') return 'pending';
+      if (inMyGigs.applicationStatus === 'rejected') return 'rejected';
+    }
+
+    return 'none';
+  };
+
   // Filter available gigs
   const filteredAvailableGigs = availableGigs.filter((gig) => {
-    // Check if worker already accepted or completed
-    const isAssigned = gig.assignedWorkerIds?.includes(currentUser?.id || '');
-    if (isAssigned) return false;
-
     // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
@@ -120,23 +143,49 @@ function WorkerGigsContent() {
     return true;
   });
 
-  const confirmedGigs = myGigs.filter(g => g.status !== 'COMPLETED' && g.status !== 'DECLINED');
-  const completedGigs = myGigs.filter(g => g.status === 'COMPLETED' || g.status === 'DECLINED');
+  // Buckets for Worker's Shifts & Applications
+  const appliedGigs = myGigs.filter(g => {
+    const isAssigned = g.assignedWorkerIds?.includes(currentUser?.id || '');
+    return g.applicationStatus === 'pending' || (g.applicationStatus === 'accepted' && !isAssigned) || g.applicationStatus === 'rejected';
+  });
+
+  const confirmedGigs = myGigs.filter(g => {
+    const isAssigned = g.assignedWorkerIds?.includes(currentUser?.id || '');
+    const isCompleted = g.status === 'COMPLETED' || g.status === 'completed' || g.status === 'DECLINED' || g.status === 'cancelled';
+    return (isAssigned || g.applicationStatus === 'accepted') && !isCompleted;
+  });
+
+  const completedGigs = myGigs.filter(g => {
+    return g.status === 'COMPLETED' || g.status === 'completed' || g.status === 'DECLINED' || g.status === 'cancelled';
+  });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-200">
       
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-20 right-4 z-50 max-w-md bg-ink text-white p-4 rounded-2xl shadow-xl flex items-start gap-3 animate-in slide-in-from-top-4 duration-200 border border-white/10">
+          <div className="h-6 w-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0 mt-0.5 font-bold text-xs">
+            ✓
+          </div>
+          <div className="space-y-0.5 text-xs">
+            <p className="font-bold text-white">Status Update</p>
+            <p className="text-stone-300 leading-relaxed">{toastMessage}</p>
+          </div>
+        </div>
+      )}
+
       {/* Title Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-surface-border p-6 rounded-3xl shadow-sm">
         <div>
           <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-1.5">
-            <Briefcase size={13} /> Worker Opportunities & Schedules
+            <Briefcase size={13} /> Worker Opportunities & Applications
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
             Find & Manage Gigs
           </h1>
           <p className="text-xs text-ink-muted mt-1">
-            Browse open shift postings from local employers, accept instant bookings, and track your active duty.
+            Apply to employer shifts, track your application review status, and manage on-duty check-ins.
           </p>
         </div>
 
@@ -161,7 +210,8 @@ function WorkerGigsContent() {
       <div className="flex border-b border-surface-border gap-2 sm:gap-6 overflow-x-auto pb-0.5">
         {[
           { id: 'available', label: 'Explore Available Gigs', count: filteredAvailableGigs.length },
-          { id: 'confirmed', label: 'Confirmed & In-Progress Shifts', count: confirmedGigs.length },
+          { id: 'applications', label: 'My Applications', count: appliedGigs.length },
+          { id: 'confirmed', label: 'Confirmed & On-Duty', count: confirmedGigs.length },
           { id: 'completed', label: 'Completed History', count: completedGigs.length },
         ].map(tab => (
           <button
@@ -183,16 +233,16 @@ function WorkerGigsContent() {
         ))}
       </div>
 
-      {/* TAB 1: AVAILABLE GIGS DISCOVERY */}
+      {/* TAB 1: EXPLORE AVAILABLE GIGS */}
       {activeTab === 'available' && (
         <div className="space-y-6">
           
-          {/* Search & Filter Controls */}
-          <div className="bg-white border border-surface-border rounded-3xl p-5 shadow-sm space-y-4">
+          {/* Search & Filter Toolbar */}
+          <div className="rounded-3xl border border-surface-border bg-white p-5 shadow-sm space-y-4">
             
-            {/* Search Bar */}
+            {/* Search Input Bar */}
             <div className="relative">
-              <Search className="absolute top-1/2 left-4 -translate-y-1/2 text-ink-subtle" size={18} />
+              <Search className="absolute left-4 top-3.5 text-ink-subtle" size={18} />
               <input
                 type="text"
                 value={searchQuery}
@@ -285,6 +335,7 @@ function WorkerGigsContent() {
                 const filledCount = gig.assignedWorkerIds?.length || gig.filledCount || 0;
                 const requiredCount = gig.workersRequired || 1;
                 const spotsLeft = Math.max(0, requiredCount - filledCount);
+                const appStatus = getGigApplicationStatus(gig);
 
                 return (
                   <div
@@ -342,7 +393,7 @@ function WorkerGigsContent() {
                       </div>
                       <div className="flex items-center gap-1.5">
                         <Clock size={13} className="text-ink-subtle shrink-0" />
-                        <span>{gig.time} ({gig.duration})</span>
+                        <span>{gig.time || `${gig.startTime} - ${gig.endTime}`} ({gig.duration})</span>
                       </div>
                       <div className="flex items-center gap-1.5 col-span-2">
                         <MapPin size={13} className="text-ink-subtle shrink-0" />
@@ -354,11 +405,11 @@ function WorkerGigsContent() {
                     {gig.matchScore && (
                       <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50/60 border border-emerald-100 p-2 text-xs text-emerald-800 font-semibold">
                         <Sparkles size={13} className="text-emerald-600 shrink-0" />
-                        <span>{gig.matchScore}% Match for your skills</span>
+                        <span>{gig.matchScore}% Match for your profile</span>
                       </div>
                     )}
 
-                    {/* Footer: Payout & Accept CTA */}
+                    {/* Footer: Payout & Dynamic Apply / Approval Status CTA */}
                     <div className="flex items-center justify-between border-t border-surface-border pt-4 mt-2">
                       <div>
                         <p className="text-xl font-black text-ink flex items-center gap-0.5">
@@ -377,13 +428,44 @@ function WorkerGigsContent() {
                         >
                           Details
                         </Link>
-                        <button
-                          onClick={(e) => handleQuickAccept(e, gig.id)}
-                          disabled={actionLoading === gig.id}
-                          className="rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1 disabled:opacity-50"
-                        >
-                          {actionLoading === gig.id ? 'Accepting...' : 'Accept Gig'}
-                        </button>
+
+                        {/* State 1: Accepted by Employer */}
+                        {appStatus === 'accepted' ? (
+                          <button
+                            onClick={() => setActiveTab('confirmed')}
+                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5"
+                          >
+                            <CheckCircle2 size={14} />
+                            Approved (Go to Duty)
+                          </button>
+                        ) : appStatus === 'pending' ? (
+                          /* State 2: Under Employer Review */
+                          <span className="rounded-xl bg-amber-50 text-amber-800 border border-amber-200 px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+                            <Hourglass size={13} className="animate-spin-slow text-amber-600" />
+                            Under Review
+                          </span>
+                        ) : appStatus === 'rejected' ? (
+                          /* State 3: Declined */
+                          <span className="rounded-xl bg-stone-100 text-ink-muted px-3 py-2 text-xs font-semibold">
+                            Not Selected
+                          </span>
+                        ) : (
+                          /* State 4: Can Apply */
+                          <button
+                            onClick={(e) => handleApply(e, gig.id, gig.title)}
+                            disabled={actionLoading === gig.id || spotsLeft === 0}
+                            className="rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+                          >
+                            {actionLoading === gig.id ? (
+                              <span className="animate-pulse">Submitting...</span>
+                            ) : (
+                              <>
+                                <ArrowRight size={14} />
+                                Apply for Gig
+                              </>
+                            )}
+                          </button>
+                        )}
                       </div>
                     </div>
 
@@ -396,7 +478,121 @@ function WorkerGigsContent() {
         </div>
       )}
 
-      {/* TAB 2: CONFIRMED & ACTIVE SHIFTS */}
+      {/* TAB 2: MY APPLICATIONS & EMPLOYER REVIEWS */}
+      {activeTab === 'applications' && (
+        <div className="space-y-6">
+          <div className="bg-brand-50/60 border border-brand-100 rounded-3xl p-5 flex items-center gap-3 text-xs text-brand-900">
+            <Bell size={20} className="text-brand-600 shrink-0" />
+            <div>
+              <p className="font-bold">Two-Way Verification & Review</p>
+              <p className="text-ink-muted mt-0.5">
+                When you apply, the employer reviews your verified profile, skills, and reliability rating. Once they approve, the shift moves immediately to your Confirmed Shifts tab for GPS check-in.
+              </p>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-4 animate-pulse">
+              <div className="h-36 bg-white border rounded-3xl" />
+            </div>
+          ) : appliedGigs.length === 0 ? (
+            <EmptyState
+              icon={Hourglass}
+              title="No pending applications"
+              description="You haven't applied for any shifts yet. Explore open employer listings to submit your profile for review."
+              actionLabel="Explore Available Gigs"
+              onAction={() => setActiveTab('available')}
+            />
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {appliedGigs.map(g => {
+                const isAccepted = g.applicationStatus === 'accepted' || g.assignedWorkerIds?.includes(currentUser?.id || '');
+                const isRejected = g.applicationStatus === 'rejected';
+                const isPending = !isAccepted && !isRejected;
+
+                return (
+                  <div
+                    key={g.id}
+                    className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                  >
+                    <div className="space-y-2 flex-grow">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded-full uppercase">
+                          {g.category}
+                        </span>
+                        
+                        {/* Status Badges */}
+                        {isPending && (
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                            <Hourglass size={12} className="animate-spin-slow text-amber-600" />
+                            Pending Employer Review
+                          </span>
+                        )}
+                        {isAccepted && (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                            <CheckCircle2 size={12} className="text-emerald-600" />
+                            Employer Approved You! 🎉
+                          </span>
+                        )}
+                        {isRejected && (
+                          <span className="inline-flex items-center gap-1 bg-stone-100 text-ink-subtle px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
+                            <XCircle size={12} className="text-stone-400" />
+                            Not Selected
+                          </span>
+                        )}
+                      </div>
+
+                      <h3 className="text-base font-extrabold text-ink">
+                        <Link href={`/worker/gigs/${g.id}`} className="hover:text-brand-600 transition-colors">
+                          {g.title}
+                        </Link>
+                      </h3>
+                      
+                      <p className="text-xs text-ink-muted">
+                        Employer: <strong className="text-ink">{g.employerName}</strong> · Schedule: <strong className="text-ink">{g.date} ({g.time || `${g.startTime} - ${g.endTime}`})</strong> · Location: <strong className="text-ink">{g.location}</strong>
+                      </p>
+
+                      {/* Informational Message */}
+                      <p className="text-[11px] font-medium text-ink-subtle">
+                        {isPending && "⏳ Your application is active. The employer was notified to review your credentials."}
+                        {isAccepted && "✅ Great news! The employer accepted your application. You can now access full duty instructions and GPS check-in."}
+                        {isRejected && "Employer chose another candidate for this shift. Keep applying for other open opportunities."}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-4 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-surface-border">
+                      <div className="text-right">
+                        <p className="text-xl font-black text-ink">₹{g.paymentAmount}</p>
+                        <p className="text-[10px] text-ink-subtle font-semibold uppercase">{g.paymentType}</p>
+                      </div>
+
+                      {isAccepted ? (
+                        <button
+                          onClick={() => setActiveTab('confirmed')}
+                          className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5"
+                        >
+                          <CheckCircle2 size={15} />
+                          Go to Confirmed Shift
+                        </button>
+                      ) : (
+                        <Link
+                          href={`/worker/gigs/${g.id}`}
+                          className="rounded-2xl border border-surface-border bg-stone-50 hover:bg-stone-100 text-ink px-4 py-2.5 text-xs font-bold transition-all shadow-xs"
+                        >
+                          View Gig Details →
+                        </Link>
+                      )}
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* TAB 3: CONFIRMED & ACTIVE SHIFTS */}
       {activeTab === 'confirmed' && (
         <div className="space-y-6">
           {loading ? (
@@ -407,7 +603,7 @@ function WorkerGigsContent() {
             <EmptyState
               icon={Briefcase}
               title="No confirmed upcoming shifts"
-              description="You haven't accepted any pending shifts. Browse available gigs posted by employers to start earning."
+              description="Once an employer approves your application, your confirmed shifts will appear here for GPS check-in and on-duty tracking."
               actionLabel="Browse Available Gigs"
               onAction={() => setActiveTab('available')}
             />
@@ -426,7 +622,7 @@ function WorkerGigsContent() {
         </div>
       )}
 
-      {/* TAB 3: COMPLETED HISTORY */}
+      {/* TAB 4: COMPLETED HISTORY */}
       {activeTab === 'completed' && (
         <div className="space-y-6">
           {loading ? (
@@ -460,7 +656,7 @@ function WorkerGigsContent() {
 
 export default function WorkerGigsPage() {
   return (
-    <Suspense fallback={<div className="h-64 flex items-center justify-center text-xs font-semibold text-ink-subtle uppercase tracking-wider">Loading gigs portal...</div>}>
+    <Suspense fallback={<div className="p-8 text-center text-xs text-ink-subtle">Loading Gigs Hub...</div>}>
       <WorkerGigsContent />
     </Suspense>
   );

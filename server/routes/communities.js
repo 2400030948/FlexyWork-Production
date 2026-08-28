@@ -44,7 +44,7 @@ function serializeCoopGig(gig) {
   };
 }
 
-router.get("/", requireAuth, async (_req, res, next) => {
+router.get("/", async (_req, res, next) => {
   try {
     const communities = await Community.find().sort({ memberCount: -1, rating: -1 });
     res.json({ communities: communities.map(serializeCommunity) });
@@ -53,7 +53,7 @@ router.get("/", requireAuth, async (_req, res, next) => {
   }
 });
 
-router.get("/gigs", requireAuth, async (req, res, next) => {
+router.get("/gigs", async (req, res, next) => {
   try {
     const query = {};
     if (req.query.communityId) query.communityId = req.query.communityId;
@@ -64,7 +64,7 @@ router.get("/gigs", requireAuth, async (req, res, next) => {
   }
 });
 
-router.get("/gigs/:id", requireAuth, async (req, res, next) => {
+router.get("/gigs/:id", async (req, res, next) => {
   try {
     const gig = await CooperativeGig.findById(req.params.id);
     if (!gig) return res.status(404).json({ message: "Cooperative gig not found" });
@@ -74,7 +74,7 @@ router.get("/gigs/:id", requireAuth, async (req, res, next) => {
   }
 });
 
-router.get("/:id", requireAuth, async (req, res, next) => {
+router.get("/:id", async (req, res, next) => {
   try {
     const community = await Community.findById(req.params.id);
     if (!community) return res.status(404).json({ message: "Community not found" });

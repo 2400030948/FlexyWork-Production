@@ -102,6 +102,9 @@ export default function PostedGigsPage() {
   const openGigs = gigs.filter(g => g.status === 'REQUESTED');
   const activeGigs = gigs.filter(g => g.status === 'ACCEPTED' || g.status === 'IN_PROGRESS');
   const completedGigs = gigs.filter(g => g.status === 'COMPLETED' || g.status === 'DECLINED');
+  const openGigs = gigs.filter(g => g.status === 'published' || g.status === 'REQUESTED');
+  const activeGigs = gigs.filter(g => g.status === 'filled' || g.status === 'in_progress' || g.status === 'ACCEPTED' || g.status === 'IN_PROGRESS');
+  const completedGigs = gigs.filter(g => g.status === 'completed' || g.status === 'COMPLETED' || g.status === 'DECLINED' || g.status === 'cancelled');
 
   const filteredGigs = 
     activeTab === 'open' ? openGigs :
