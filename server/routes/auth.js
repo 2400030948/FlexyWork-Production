@@ -89,10 +89,12 @@ router.post("/logout", (_req, res) => {
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  const profile =
-    req.user.role === "worker"
-      ? await WorkerProfile.findOne({ userId: req.user._id })
-      : await EmployerProfile.findOne({ userId: req.user._id });
+  let profile = null;
+  if (req.user.role === "worker") {
+    profile = await WorkerProfile.findOne({ userId: req.user._id });
+  } else if (req.user.role !== "admin") {
+    profile = await EmployerProfile.findOne({ userId: req.user._id });
+  }
   res.json({ user: req.user, profile });
 });
 

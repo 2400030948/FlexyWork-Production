@@ -106,7 +106,14 @@ router.get("/", requireAuth, async (req, res, next) => {
       ];
     }
     if (category) {
-      query.skills = new RegExp(escapeRegex(category), "i");
+      // Use $and to combine with existing $or from search without overwriting
+      const categoryRegex = new RegExp(escapeRegex(category), "i");
+      if (query.$or) {
+        query.$and = [{ $or: query.$or }, { skills: categoryRegex }];
+        delete query.$or;
+      } else {
+        query.skills = categoryRegex;
+      }
     }
     if (minRating !== undefined) {
       query.rating = { $gte: minRating };

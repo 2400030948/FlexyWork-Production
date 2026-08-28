@@ -433,7 +433,7 @@ export default function PostedGigsPage() {
                                 <button
                                   onClick={() => handleUpdateApplication(gig.id, app.id, 'rejected')}
                                   disabled={actionLoading === app.id}
-                                  className="rounded-xl border border-surface-border bg-white hover:bg-rose-50 text-rose-600 px-3 py-2 text-xs font-bold transition-all disabled:opacity-50"
+                                  className="rounded-xl border border-surface-border bg-white hover:bg-rose-50 text-rose-600 px-3 py-2 text-xs font-bold transition-all disabled:opacity-50 flex items-center gap-1"
                                 >
                                   <XCircle size={13} />
                                   Decline

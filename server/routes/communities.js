@@ -64,21 +64,21 @@ router.get("/gigs", requireAuth, async (req, res, next) => {
   }
 });
 
-router.get("/:id", requireAuth, async (req, res, next) => {
-  try {
-    const community = await Community.findById(req.params.id);
-    if (!community) return res.status(404).json({ message: "Community not found" });
-    res.json({ community: serializeCommunity(community) });
-  } catch (error) {
-    next(error);
-  }
-});
-
 router.get("/gigs/:id", requireAuth, async (req, res, next) => {
   try {
     const gig = await CooperativeGig.findById(req.params.id);
     if (!gig) return res.status(404).json({ message: "Cooperative gig not found" });
     res.json({ coopGig: serializeCoopGig(gig) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/:id", requireAuth, async (req, res, next) => {
+  try {
+    const community = await Community.findById(req.params.id);
+    if (!community) return res.status(404).json({ message: "Community not found" });
+    res.json({ community: serializeCommunity(community) });
   } catch (error) {
     next(error);
   }

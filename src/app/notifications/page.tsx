@@ -92,7 +92,9 @@ export default function NotificationsPage() {
               <div className="space-y-0.5 flex-grow">
                 <div className="flex justify-between items-start gap-4">
                   <h4 className="text-xs font-bold text-ink leading-tight">{n.title}</h4>
-                  <span className="text-[10px] text-ink-subtle font-medium shrink-0">{n.timestamp}</span>
+                  <span className="text-[10px] text-ink-subtle font-medium shrink-0">
+                    {new Date(n.timestamp).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
                 <p className="text-xs text-ink-muted leading-relaxed">
                   {n.message}
