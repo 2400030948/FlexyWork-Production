@@ -18,16 +18,30 @@ function toApiRole(role: UserRole): 'worker' | 'employer' {
   return role === 'worker' ? 'worker' : 'employer';
 }
 
-export async function login(email: string, password: string): Promise<User> {
-  const data = await apiCall<{ user: ApiUser; token?: string }>('/api/auth/login', {
+export async function login(email: string, password: string, role?: UserRole): Promise<User> {
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/login', {
     method: 'POST',
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({
+      email,
+      password,
+      role: role ? toApiRole(role) : undefined
+    })
   });
-  if (typeof window !== 'undefined') {
-    if (data.token) localStorage.setItem('flexywork_token', data.token);
-    window.dispatchEvent(new Event('auth-change'));
-  }
   return fromApiUser(data.user);
+}
+
+export async function sendOtp(email: string): Promise<{ success: boolean; message: string; devNotice?: string }> {
+  return apiCall<{ success: boolean; message: string; devNotice?: string }>('/api/auth/send-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email })
+  });
+}
+
+export async function verifyOtp(email: string, otp: string): Promise<{ success: boolean; message: string }> {
+  return apiCall<{ success: boolean; message: string }>('/api/auth/verify-otp', {
+    method: 'POST',
+    body: JSON.stringify({ email, otp })
+  });
 }
 
 export async function signup(
@@ -36,9 +50,10 @@ export async function signup(
   password: string,
   role: UserRole,
   location: string,
+  otp?: string,
   businessName?: string
 ): Promise<User> {
-  const data = await apiCall<{ user: ApiUser; token?: string }>('/api/auth/register', {
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       name,
@@ -46,24 +61,42 @@ export async function signup(
       password,
       role: toApiRole(role),
       location,
+      otp,
       businessName
     })
   });
-  if (typeof window !== 'undefined') {
-    if (data.token) localStorage.setItem('flexywork_token', data.token);
-    window.dispatchEvent(new Event('auth-change'));
-  }
+  return fromApiUser(data.user);
+}
+
+export async function loginWithGoogle(payload: {
+  credential?: string;
+  email?: string;
+  name?: string;
+  picture?: string;
+  googleId?: string;
+  role?: UserRole;
+  location?: string;
+}): Promise<User> {
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({
+      ...payload,
+      role: payload.role ? toApiRole(payload.role) : 'employer'
+    })
+  });
+  return fromApiUser(data.user);
+}
+
+export async function switchRole(role: UserRole): Promise<User> {
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/switch-role', {
+    method: 'POST',
+    body: JSON.stringify({ role: toApiRole(role) })
+  });
   return fromApiUser(data.user);
 }
 
 export async function logout(): Promise<void> {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('flexywork_token');
-  }
-  await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }).catch(() => {});
-  if (typeof window !== 'undefined') {
-    window.dispatchEvent(new Event('auth-change'));
-  }
+  await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
 }
 
 export async function getMe(): Promise<User | null> {

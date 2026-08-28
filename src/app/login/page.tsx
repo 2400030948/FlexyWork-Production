@@ -3,11 +3,14 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Briefcase, ArrowRight, Shield, User, Loader2, KeyRound } from 'lucide-react';
+import { Briefcase, ArrowRight, User, Loader2 } from 'lucide-react';
 import { login } from '../../services/auth';
+import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
+import { UserRole } from '../../types';
 
 export default function LoginPage() {
   const router = useRouter();
+  const [role, setRole] = useState<UserRole>('seeker');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -15,14 +18,14 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) {
-      setError('Please enter your email.');
+    if (!email || !password) {
+      setError('Please enter your email and password.');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      const user = await login(email, password);
+      const user = await login(email, password, role);
       if (user.role === 'worker') {
         router.push('/worker');
       } else if (user.role === 'admin') {
@@ -31,68 +34,85 @@ export default function LoginPage() {
         router.push('/home');
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      setError(err.message || 'Login failed. Please check credentials.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAutofill = (userEmail: string, userPass: string) => {
-    setEmail(userEmail);
-    setPassword(userPass);
-    setError('');
-  };
-
   return (
     <div className="relative flex min-h-[85vh] flex-col items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
       
-      {/* Background Glows */}
+      {/* Background Blobs */}
       <div className="absolute top-1/4 left-1/4 -z-10 h-72 w-72 rounded-full bg-brand-100/50 blur-3xl" />
       <div className="absolute bottom-1/4 right-1/4 -z-10 h-72 w-72 rounded-full bg-emerald-50/50 blur-3xl" />
 
-      <div className="w-full max-w-md space-y-6 bg-white border border-surface-border rounded-3xl p-8 shadow-sm">
+      <div className="w-full max-w-md space-y-6 bg-white border border-surface-border rounded-2xl p-8 shadow-sm">
         
-        {/* Brand Header */}
+        {/* Header */}
         <div className="text-center">
-          <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-500 text-white font-black text-2xl mb-3 shadow-md shadow-brand-500/20">
+          <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-brand-500 text-white font-bold text-xl mb-4 shadow-md shadow-brand-500/20">
             F
           </span>
           <h2 className="text-2xl font-extrabold text-ink tracking-tight">Sign in to FLEXYWORK</h2>
-          <p className="mt-1 text-xs text-ink-muted">
-            Don't have an account?{' '}
-            <Link href="/signup" className="font-bold text-brand-600 hover:text-brand-700 transition-colors">
-              Create a free account
+          <p className="mt-1.5 text-sm text-ink-muted">
+            Or{' '}
+            <Link href="/signup" className="font-bold text-brand-600 hover:text-brand-500 transition-colors">
+              create a free account
             </Link>
           </p>
         </div>
 
-        {/* Quick Fill Shortcuts */}
-        <div className="bg-stone-50 border border-surface-border rounded-2xl p-3.5 space-y-2 text-xs">
-          <p className="text-[10px] font-extrabold uppercase tracking-wider text-ink-subtle flex items-center gap-1">
-            <KeyRound size={12} className="text-brand-500" />
-            Quick-Fill Your Saved Accounts:
-          </p>
+        {/* Role Selection Tabs for Login */}
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-ink-muted">Login as</label>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
-              onClick={() => handleAutofill('soumya.mishra.7812@gmail.com', 'password123')}
-              className="p-2 rounded-xl bg-white border border-surface-border hover:border-brand-300 text-left transition-all hover:shadow-xs group"
+              onClick={() => setRole('seeker')}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all ${
+                role === 'seeker'
+                  ? 'border-brand-500 bg-brand-50/60 text-brand-800 shadow-sm ring-1 ring-brand-500/20'
+                  : 'border-surface-border bg-stone-50 text-stone-600 hover:bg-white'
+              }`}
             >
-              <p className="font-bold text-[11px] text-ink group-hover:text-brand-600">Soumya (Employer)</p>
-              <p className="text-[9px] text-ink-muted truncate">soumya.mishra...gmail</p>
+              <User size={16} className={role === 'seeker' ? 'text-brand-600' : 'text-stone-400'} />
+              <span>Seeker (Hire)</span>
             </button>
+
             <button
               type="button"
-              onClick={() => handleAutofill('soumyakittu.6.4.6@gmail.com', 'password123')}
-              className="p-2 rounded-xl bg-white border border-surface-border hover:border-brand-300 text-left transition-all hover:shadow-xs group"
+              onClick={() => setRole('worker')}
+              className={`flex items-center justify-center gap-2 p-3 rounded-xl border font-bold text-xs transition-all ${
+                role === 'worker'
+                  ? 'border-indigo-500 bg-indigo-50/60 text-indigo-800 shadow-sm ring-1 ring-indigo-500/20'
+                  : 'border-surface-border bg-stone-50 text-stone-600 hover:bg-white'
+              }`}
             >
-              <p className="font-bold text-[11px] text-ink group-hover:text-brand-600">Soumya (Worker)</p>
-              <p className="text-[9px] text-ink-muted truncate">soumyakittu...gmail</p>
+              <Briefcase size={16} className={role === 'worker' ? 'text-indigo-600' : 'text-stone-400'} />
+              <span>Worker (Work)</span>
             </button>
           </div>
         </div>
 
-        {/* Login Form */}
+        {/* Continue with Google */}
+        <div className="space-y-3">
+          <GoogleSignInButton
+            role={role}
+            text={`Sign in as ${role === 'worker' ? 'Worker' : 'Seeker'} with Google`}
+            onError={(err) => setError(err)}
+          />
+          
+          <div className="relative flex items-center justify-center">
+            <div className="w-full border-t border-stone-200" />
+            <span className="bg-white px-3 text-[11px] font-semibold uppercase tracking-wider text-stone-400">
+              Or sign in with email
+            </span>
+            <div className="w-full border-t border-stone-200" />
+          </div>
+        </div>
+
+        {/* Regular Login Form */}
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl p-3">
@@ -107,36 +127,41 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. soumya.mishra.7812@gmail.com"
-              className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-xs font-bold text-ink focus:bg-white"
+              placeholder="e.g. yourname@gmail.com"
+              className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink focus:bg-white focus:border-brand-500 focus:outline-none transition-colors"
             />
           </div>
 
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label className="text-xs font-bold text-ink-muted">Password</label>
+              <span className="text-[10px] text-brand-600 font-bold hover:underline cursor-pointer">
+                Forgot?
+              </span>
             </div>
             <input
               type="password"
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-xs font-bold text-ink focus:bg-white"
+              placeholder="••••••••"
+              className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink focus:bg-white focus:border-brand-500 focus:outline-none transition-colors"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white py-3 text-xs font-extrabold shadow-md shadow-brand-500/15 transition-all disabled:opacity-50"
+            className={`flex w-full items-center justify-center gap-1.5 rounded-xl py-3 text-sm font-bold text-white shadow transition-colors disabled:opacity-50 ${
+              role === 'worker' ? 'bg-indigo-600 hover:bg-indigo-700' : 'bg-brand-500 hover:bg-brand-600'
+            }`}
           >
             {loading ? (
               <Loader2 size={16} className="animate-spin" />
             ) : (
               <>
-                Sign In
-                <ArrowRight size={14} />
+                Sign In as {role === 'worker' ? 'Worker' : 'Seeker'}
+                <ArrowRight size={16} />
               </>
             )}
           </button>

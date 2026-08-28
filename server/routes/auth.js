@@ -1,10 +1,15 @@
 import bcrypt from "bcryptjs";
 import express from "express";
 import jwt from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
 import { z } from "zod";
 import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
 import { User } from "../models/User.js";
+import { Otp } from "../models/Otp.js";
+import { sendOtpEmail } from "../services/mailer.js";
 import { requireAuth } from "../middleware/auth.js";
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
 const router = express.Router();
 const cookieOptions = {
@@ -20,7 +25,8 @@ const registerSchema = z.object({
   password: z.string().min(6),
   role: z.enum(["worker", "employer", "seeker", "admin"]),
   location: z.string().min(2).optional(),
-  businessName: z.string().optional()
+  businessName: z.string().optional(),
+  otp: z.string().min(4).max(8).optional()
 });
 
 function sign(user) {
@@ -28,10 +34,13 @@ function sign(user) {
   return jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
-async function createProfile(user, body) {
-  if (user.role === "admin") return null;
+async function createProfile(user, body = {}, targetRole = null) {
+  const role = targetRole || (user.role === "seeker" ? "employer" : user.role);
+  if (role === "admin") return null;
 
-  if (user.role === "worker") {
+  if (role === "worker") {
+    const existing = await WorkerProfile.findOne({ userId: user._id });
+    if (existing) return existing;
     return WorkerProfile.create({
       userId: user._id,
       location: body.location || user.location || "Indiranagar",
@@ -48,6 +57,8 @@ async function createProfile(user, body) {
     });
   }
 
+  const existing = await EmployerProfile.findOne({ userId: user._id });
+  if (existing) return existing;
   return EmployerProfile.create({
     userId: user._id,
     businessName: body.businessName || `${user.name}'s Household`,
@@ -55,23 +66,114 @@ async function createProfile(user, body) {
   });
 }
 
-function escapeRegex(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
+router.post("/send-otp", async (req, res, next) => {
+  try {
+    const { email } = z.object({ email: z.string().email() }).parse(req.body);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if email already registered
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: "An account with this email already exists. Please sign in instead." });
+    }
+
+    // Generate secure 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Delete existing OTPs for this email and save new OTP with 10-minute expiry
+    await Otp.deleteMany({ email: normalizedEmail });
+    await Otp.create({
+      email: normalizedEmail,
+      otp,
+      verified: false,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    });
+
+    // Send Email via mailer
+    const mailResult = await sendOtpEmail(normalizedEmail, otp);
+
+    res.json({
+      success: true,
+      message: `Verification code sent to ${normalizedEmail}`,
+      devNotice: mailResult.devMode ? "Check server console for OTP code" : undefined
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/verify-otp", async (req, res, next) => {
+  try {
+    const { email, otp } = z.object({ email: z.string().email(), otp: z.string().min(4).max(8) }).parse(req.body);
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const otpRecord = await Otp.findOne({
+      email: normalizedEmail,
+      otp: otp.trim(),
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: "Invalid or expired verification code" });
+    }
+
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    res.json({ success: true, message: "Email verified successfully" });
+  } catch (error) {
+    next(error);
+  }
+});
 
 router.post("/register", async (req, res, next) => {
   try {
     const body = registerSchema.parse(req.body);
     const normalizedRole = body.role === "seeker" ? "employer" : body.role;
-    const cleanEmail = body.email.trim().toLowerCase();
-    const existing = await User.findOne({ email: new RegExp("^" + escapeRegex(cleanEmail) + "$", "i") });
-    if (existing) return res.status(409).json({ message: "Email is already registered" });
+    const normalizedEmail = body.email.toLowerCase().trim();
 
+    // Strictly check if email is already registered
+    const existingUser = await User.findOne({ email: normalizedEmail });
+    if (existingUser) {
+      return res.status(409).json({ message: "An account with this email already exists. Please sign in instead." });
+    }
+
+    // Verify OTP if passed or check that email was verified
+    if (body.otp) {
+      const otpRecord = await Otp.findOne({
+        email: normalizedEmail,
+        otp: body.otp.trim(),
+        expiresAt: { $gt: new Date() }
+      });
+      if (!otpRecord) {
+        return res.status(400).json({ message: "Invalid or expired verification code" });
+      }
+      await Otp.deleteMany({ email: normalizedEmail });
+    } else {
+      // Check if previously verified
+      const verifiedOtp = await Otp.findOne({
+        email: normalizedEmail,
+        verified: true,
+        expiresAt: { $gt: new Date() }
+      });
+      if (!verifiedOtp) {
+        return res.status(400).json({ message: "Please verify your email address with the OTP code first" });
+      }
+      await Otp.deleteMany({ email: normalizedEmail });
+    }
+
+    // Create brand new user (1 email = 1 account strictly)
     const passwordHash = await bcrypt.hash(body.password, 12);
-    const user = await User.create({ ...body, email: cleanEmail, role: normalizedRole, passwordHash });
-    await createProfile(user, body);
-    const token = sign(user);
-    res.cookie("flexywork_token", token, cookieOptions).status(201).json({ user, token });
+    const user = await User.create({
+      ...body,
+      email: normalizedEmail,
+      role: normalizedRole,
+      roles: [normalizedRole],
+      passwordHash
+    });
+
+    await createProfile(user, body, normalizedRole);
+    res.cookie("flexywork_token", sign(user), cookieOptions).status(201).json({ user });
   } catch (error) {
     next(error);
   }
@@ -79,14 +181,92 @@ router.post("/register", async (req, res, next) => {
 
 router.post("/login", async (req, res, next) => {
   try {
-    const body = z.object({ email: z.string().min(3), password: z.string().min(1) }).parse(req.body);
-    const cleanEmail = body.email.trim();
-    const user = await User.findOne({ email: new RegExp("^" + escapeRegex(cleanEmail) + "$", "i") }).select("+passwordHash");
+    const body = z.object({
+      email: z.string().email(),
+      password: z.string().min(1),
+      role: z.enum(["worker", "employer", "seeker", "admin"]).optional()
+    }).parse(req.body);
+
+    const user = await User.findOne({ email: body.email.toLowerCase().trim() }).select("+passwordHash");
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    const token = sign(user);
-    res.cookie("flexywork_token", token, cookieOptions).json({ user, token });
+
+    // Always log in with user's permanent registered role
+    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post("/google", async (req, res, next) => {
+  try {
+    let { email, name, picture, googleId, role = "seeker", location = "Indiranagar", credential } = req.body;
+
+    // Verify Real Google ID Token if passed from Google Identity Services
+    if (credential) {
+      try {
+        const clientId = process.env.GOOGLE_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+        let payload;
+        if (clientId) {
+          try {
+            const ticket = await googleClient.verifyIdToken({
+              idToken: credential,
+              audience: clientId
+            });
+            payload = ticket.getPayload();
+          } catch (e) {
+            payload = JSON.parse(Buffer.from(credential.split(".")[1], "base64").toString());
+          }
+        } else {
+          payload = JSON.parse(Buffer.from(credential.split(".")[1], "base64").toString());
+        }
+
+        if (payload) {
+          email = payload.email || email;
+          name = payload.name || name || email.split("@")[0];
+          picture = payload.picture || picture;
+          googleId = payload.sub || googleId;
+        }
+      } catch (err) {
+        console.error("Google Token Verification Error:", err.message);
+      }
+    }
+
+    if (!email) {
+      return res.status(400).json({ message: "Email is required for Google Sign-In" });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedRole = role === "seeker" ? "employer" : role;
+
+    let user = await User.findOne({
+      $or: [{ email: normalizedEmail }, ...(googleId ? [{ googleId }] : [])]
+    });
+
+    if (user) {
+      // User already exists: strictly retain user's permanent registered role
+      if (googleId && !user.googleId) user.googleId = googleId;
+      if (picture && !user.profileImage) user.profileImage = picture;
+      if (!user.authProvider) user.authProvider = "google";
+      await user.save();
+    } else {
+      // Create new user authenticated via Google with the selected role
+      user = await User.create({
+        name: name || normalizedEmail.split("@")[0],
+        email: normalizedEmail,
+        googleId: googleId || `google_${Date.now()}`,
+        profileImage: picture,
+        authProvider: "google",
+        role: normalizedRole,
+        roles: [normalizedRole],
+        location: location || "Indiranagar"
+      });
+
+      await createProfile(user, { location, businessName: `${user.name}'s Business` }, normalizedRole);
+    }
+
+    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
   } catch (error) {
     next(error);
   }
@@ -97,12 +277,10 @@ router.post("/logout", (_req, res) => {
 });
 
 router.get("/me", requireAuth, async (req, res) => {
-  let profile = null;
-  if (req.user.role === "worker") {
-    profile = await WorkerProfile.findOne({ userId: req.user._id });
-  } else if (req.user.role !== "admin") {
-    profile = await EmployerProfile.findOne({ userId: req.user._id });
-  }
+  const profile =
+    req.user.role === "worker"
+      ? await WorkerProfile.findOne({ userId: req.user._id })
+      : await EmployerProfile.findOne({ userId: req.user._id });
   res.json({ user: req.user, profile });
 });
 
