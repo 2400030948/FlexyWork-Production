@@ -5,13 +5,17 @@ export const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve
 export async function apiCall<T>(path: string, options: RequestInit = {}): Promise<T> {
   if (USE_LIVE_API) {
     const hasBody = options.body !== undefined;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('flexywork_token') : null;
+    const headers: Record<string, string> = {
+      ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...((options.headers as Record<string, string>) || {}),
+    };
+
     const response = await fetch(path, {
       credentials: 'include',
       ...options,
-      headers: {
-        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-        ...(options.headers || {}),
-      },
+      headers,
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) {

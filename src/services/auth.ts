@@ -19,11 +19,12 @@ function toApiRole(role: UserRole): 'worker' | 'employer' {
 }
 
 export async function login(email: string, password: string): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/login', {
+  const data = await apiCall<{ user: ApiUser; token?: string }>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password })
   });
   if (typeof window !== 'undefined') {
+    if (data.token) localStorage.setItem('flexywork_token', data.token);
     window.dispatchEvent(new Event('auth-change'));
   }
   return fromApiUser(data.user);
@@ -37,7 +38,7 @@ export async function signup(
   location: string,
   businessName?: string
 ): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/register', {
+  const data = await apiCall<{ user: ApiUser; token?: string }>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       name,
@@ -49,13 +50,17 @@ export async function signup(
     })
   });
   if (typeof window !== 'undefined') {
+    if (data.token) localStorage.setItem('flexywork_token', data.token);
     window.dispatchEvent(new Event('auth-change'));
   }
   return fromApiUser(data.user);
 }
 
 export async function logout(): Promise<void> {
-  await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('flexywork_token');
+  }
+  await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' }).catch(() => {});
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new Event('auth-change'));
   }

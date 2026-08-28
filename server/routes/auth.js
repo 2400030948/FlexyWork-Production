@@ -55,17 +55,23 @@ async function createProfile(user, body) {
   });
 }
 
+function escapeRegex(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 router.post("/register", async (req, res, next) => {
   try {
     const body = registerSchema.parse(req.body);
     const normalizedRole = body.role === "seeker" ? "employer" : body.role;
-    const existing = await User.findOne({ email: body.email });
+    const cleanEmail = body.email.trim().toLowerCase();
+    const existing = await User.findOne({ email: new RegExp("^" + escapeRegex(cleanEmail) + "$", "i") });
     if (existing) return res.status(409).json({ message: "Email is already registered" });
 
     const passwordHash = await bcrypt.hash(body.password, 12);
-    const user = await User.create({ ...body, role: normalizedRole, passwordHash });
+    const user = await User.create({ ...body, email: cleanEmail, role: normalizedRole, passwordHash });
     await createProfile(user, body);
-    res.cookie("flexywork_token", sign(user), cookieOptions).status(201).json({ user });
+    const token = sign(user);
+    res.cookie("flexywork_token", token, cookieOptions).status(201).json({ user, token });
   } catch (error) {
     next(error);
   }
@@ -73,12 +79,14 @@ router.post("/register", async (req, res, next) => {
 
 router.post("/login", async (req, res, next) => {
   try {
-    const body = z.object({ email: z.string().email(), password: z.string().min(1) }).parse(req.body);
-    const user = await User.findOne({ email: body.email }).select("+passwordHash");
+    const body = z.object({ email: z.string().min(3), password: z.string().min(1) }).parse(req.body);
+    const cleanEmail = body.email.trim();
+    const user = await User.findOne({ email: new RegExp("^" + escapeRegex(cleanEmail) + "$", "i") }).select("+passwordHash");
     if (!user || !(await bcrypt.compare(body.password, user.passwordHash))) {
       return res.status(401).json({ message: "Invalid email or password" });
     }
-    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
+    const token = sign(user);
+    res.cookie("flexywork_token", token, cookieOptions).json({ user, token });
   } catch (error) {
     next(error);
   }
