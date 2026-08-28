@@ -5,6 +5,7 @@ import { Notification } from "../models/Notification.js";
 import { Payment } from "../models/Payment.js";
 import { Shift } from "../models/Shift.js";
 
+import { Application } from "../models/Application.js";
 import { WorkerProfile } from "../models/Profile.js";
 
 const router = express.Router();

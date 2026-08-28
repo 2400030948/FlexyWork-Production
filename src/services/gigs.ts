@@ -1,4 +1,4 @@
-import { Gig, UserRole } from '../types';
+import { Gig, ShiftApplication, UserRole } from '../types';
 import { apiCall } from './api';
 
 export async function getGigs(filters?: {
@@ -32,11 +32,11 @@ export async function createGig(gigData: Omit<Gig, 'id' | 'filledCount' | 'assig
   return data.shift;
 }
 
-export async function applyForGig(gigId: string, _workerUserId: string): Promise<void> {
+export async function applyForGig(gigId: string, _workerUserId?: string): Promise<void> {
   await apiCall(`/api/shifts/${gigId}/apply`, { method: 'POST' });
 }
 
-export async function acceptGig(gigId: string, _workerUserId: string): Promise<void> {
+export async function acceptGig(gigId: string, _workerUserId?: string): Promise<void> {
   await apiCall(`/api/shifts/${gigId}/accept`, { method: 'POST' });
 }
 
@@ -44,9 +44,25 @@ export async function recordAttendance(gigId: string, action: 'check-in' | 'chec
   await apiCall(`/api/attendance/${gigId}/${action}`, { method: 'POST' });
 }
 
-export async function getMyGigs(_userId: string, _role: UserRole): Promise<Gig[]> {
+export async function getMyGigs(_userId?: string, _role?: UserRole): Promise<Gig[]> {
   const data = await apiCall<{ shifts: Gig[] }>('/api/shifts/mine');
   return data.shifts;
+}
+
+export async function getShiftApplications(shiftId: string): Promise<ShiftApplication[]> {
+  try {
+    const data = await apiCall<{ applications: ShiftApplication[] }>(`/api/shifts/${shiftId}/applications`);
+    return data.applications;
+  } catch {
+    return [];
+  }
+}
+
+export async function updateApplicationStatus(applicationId: string, status: 'accepted' | 'rejected'): Promise<any> {
+  return await apiCall(`/api/shifts/applications/${applicationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status })
+  });
 }
 
 export async function parseAIPrompt(prompt: string): Promise<any> {
@@ -56,3 +72,4 @@ export async function parseAIPrompt(prompt: string): Promise<any> {
   });
   return data.parsed;
 }
+

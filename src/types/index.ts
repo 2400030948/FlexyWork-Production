@@ -1,4 +1,4 @@
-export type UserRole = 'seeker' | 'worker' | 'admin';
+export type UserRole = 'seeker' | 'worker' | 'employer' | 'admin';
 
 export interface User {
   id: string;
@@ -74,6 +74,21 @@ export interface Gig {
   matchReasons?: string[];
   checkInTime?: string;
   checkOutTime?: string;
+}
+
+export interface ShiftApplication {
+  id: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  appliedAt: string;
+  worker: {
+    id?: string;
+    _id?: string;
+    name: string;
+    email: string;
+    phone?: string;
+    location?: string;
+  };
+  profile?: WorkerProfile | null;
 }
 
 export interface Booking {

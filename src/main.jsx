@@ -172,7 +172,7 @@ function AuthPanel({ role, setRole, user, onAuth }) {
   const [form, setForm] = useState({
     name: "Rahul Sharma",
     email: "worker@flexywork.local",
-    password: "password123",
+    password: "",
     businessName: "Blue Bowl Cafe",
     location: "Indiranagar"
   });

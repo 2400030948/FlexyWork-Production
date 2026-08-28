@@ -107,16 +107,27 @@ async function serializeShift(shift, workerProfile, viewerId) {
   };
 }
 
+const shiftQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  date: z.string().max(10).optional(),
+  minPay: z.coerce.number().min(0).optional()
+});
+
 router.get("/", requireAuth, async (req, res, next) => {
   try {
+    const parsed = shiftQuerySchema.safeParse(req.query);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid query parameters" });
+    const { search, category, date, minPay } = parsed.data;
+
     const query = { status: "published" };
-    if (req.query.category) query.category = req.query.category;
-    if (req.query.date) query.date = req.query.date;
-    if (req.query.search) {
-      const regex = new RegExp(escapeRegex(String(req.query.search)), "i");
+    if (category) query.category = category;
+    if (date) query.date = date;
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
       query.$or = [{ title: regex }, { description: regex }, { category: regex }, { location: regex }];
     }
-    if (req.query.minPay) query.paymentAmount = { $gte: Number(req.query.minPay) };
+    if (minPay !== undefined) query.paymentAmount = { $gte: minPay };
 
     const workerProfile = req.user.role === "worker" ? await WorkerProfile.findOne({ userId: req.user._id }) : null;
     const shifts = await Shift.find(query).sort({ createdAt: -1 }).limit(50);
@@ -141,13 +152,7 @@ router.post("/parse", requireAuth, requireRole(["employer", "seeker", "admin"]),
     const text = z.object({ prompt: z.string().min(3) }).parse(req.body).prompt;
     const lower = text.toLowerCase();
     const payment = text.match(/(?:₹|rs\.?|rupees?)\s?(\d+)/i)?.[1] || text.match(/\b(\d{3,5})\b/)?.[1] || "500";
-    
-    // Smart worker count extraction
-    const workersMatch =
-      text.match(/\b(\d+)\s*(?:[\w\s]{0,20})?\s*(?:helpers?|workers?|people|cleaners?|staff|electricians?|gardeners?|waiters?)\b/i)?.[1] ||
-      text.match(/\b(?:need|require|hire|for)\s*(\d+)\b/i)?.[1] ||
-      "1";
-
+    const workers = text.match(/\b(\d+)\s?(helpers?|workers?|people|staff)\b/i)?.[1] || "1";
     const title = lower.includes("waiter")
       ? "Waiter"
       : lower.includes("shop")
@@ -159,12 +164,6 @@ router.post("/parse", requireAuth, requireRole(["employer", "seeker", "admin"]),
       : lower.includes("garden") || lower.includes("lawn")
       ? "Gardener"
       : "Helper";
-
-    const startMatch = text.match(/(?:from|at)?\s*(\d{1,2}(?::\d{2})?)\s*(am|pm)\b/i);
-    const endMatch = text.match(/(?:to|until|-)\s*(\d{1,2}(?::\d{2})?)\s*(am|pm)\b/i);
-    const startTime = startMatch ? `${startMatch[1]} ${startMatch[2].toUpperCase()}` : "9:00 AM";
-    const endTime = endMatch ? `${endMatch[1]} ${endMatch[2].toUpperCase()}` : "1:00 PM";
-
     res.json({
       parsed: {
         title,
@@ -189,10 +188,10 @@ router.post("/parse", requireAuth, requireRole(["employer", "seeker", "admin"]),
           : lower.includes("garden")
           ? ["Lawn Mowing", "Pruning & Hedging"]
           : ["Customer handling", "Basic communication"],
-        workersRequired: Number(workersMatch),
+        workersRequired: Number(workers),
         date: lower.includes("tomorrow") ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-        startTime,
-        endTime,
+        startTime: text.match(/\b(\d{1,2})\s?(am|pm)\b/i)?.[0]?.toUpperCase() || "5 PM",
+        endTime: text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)?.[1] ? `${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[1]} ${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[2].toUpperCase()}` : "9 PM",
         duration: "4h",
         paymentType: "fixed",
         paymentAmount: Number(payment),

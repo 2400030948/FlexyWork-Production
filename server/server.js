@@ -1,4 +1,5 @@
 import cookieParser from "cookie-parser";
+import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { connectDb } from "./config/db.js";
@@ -17,6 +18,10 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 4000;
 
+app.use(cors({
+  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 

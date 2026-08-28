@@ -12,20 +12,25 @@ export default function SignupPage() {
   const [role, setRole] = useState<UserRole>('seeker');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [location, setLocation] = useState('Vijayawada');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !email) {
+    if (!name || !email || !password) {
       setError('Please fill in all required fields.');
+      return;
+    }
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
     setLoading(true);
     setError('');
     try {
-      await signup(name, email, role, location);
+      await signup(name, email, password, role, location);
       if (role === 'worker') {
         router.push('/worker');
       } else {
@@ -135,6 +140,19 @@ export default function SignupPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="e.g. ramesh@gmail.com"
+              className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-ink-muted">Password</label>
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Min. 6 characters"
               className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink"
             />
           </div>

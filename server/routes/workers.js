@@ -76,11 +76,21 @@ const profilePayload = z.object({
   skills: z.array(z.string()).optional()
 });
 
+const searchQuerySchema = z.object({
+  search: z.string().max(100).optional(),
+  category: z.string().max(100).optional(),
+  minRating: z.coerce.number().min(0).max(5).optional()
+});
+
 router.get("/", requireAuth, async (req, res, next) => {
   try {
+    const parsed = searchQuerySchema.safeParse(req.query);
+    if (!parsed.success) return res.status(400).json({ message: "Invalid query parameters" });
+    const { search, category, minRating } = parsed.data;
+
     const query = {};
-    if (req.query.search) {
-      const regex = new RegExp(escapeRegex(String(req.query.search)), "i");
+    if (search) {
+      const regex = new RegExp(escapeRegex(search), "i");
       const matchingUsers = await User.find({
         $or: [{ name: regex }, { email: regex }],
         role: "worker"
@@ -95,12 +105,11 @@ router.get("/", requireAuth, async (req, res, next) => {
         { userId: { $in: userIds } }
       ];
     }
-    if (req.query.category) {
-      const regex = new RegExp(escapeRegex(String(req.query.category)), "i");
-      query.skills = regex;
+    if (category) {
+      query.skills = new RegExp(escapeRegex(category), "i");
     }
-    if (req.query.minRating) {
-      query.rating = { $gte: Number(req.query.minRating) };
+    if (minRating !== undefined) {
+      query.rating = { $gte: minRating };
     }
 
     const profiles = await WorkerProfile.find(query).sort({ rating: -1, reliabilityScore: -1 }).limit(50);

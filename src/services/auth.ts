@@ -29,6 +29,7 @@ export async function login(email: string, password: string): Promise<User> {
 export async function signup(
   name: string,
   email: string,
+  password: string,
   role: UserRole,
   location: string,
   businessName?: string
@@ -38,7 +39,7 @@ export async function signup(
     body: JSON.stringify({
       name,
       email,
-      password: 'password123',
+      password,
       role: toApiRole(role),
       location,
       businessName
