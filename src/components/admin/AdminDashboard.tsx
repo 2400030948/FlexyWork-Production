@@ -67,13 +67,13 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
 
   // Filter lists based on search
   const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    u.email.toLowerCase().includes(searchQuery.toLowerCase())
+    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const filteredGigs = gigs.filter(g => 
-    g.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    g.employerName.toLowerCase().includes(searchQuery.toLowerCase())
+    (g.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (g.employerName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
@@ -265,7 +265,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
                   <div key={w.id} className="flex justify-between items-center p-4 border border-surface-border rounded-2xl bg-stone-50/20">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 bg-brand-50 border border-brand-100 text-brand-700 font-extrabold text-xs flex items-center justify-center rounded-lg">
-                        {w.name.split(' ').map(n=>n[0]).join('')}
+                        {(w.name || '').split(' ').map(n=>n[0]).join('')}
                       </div>
                       <div>
                         <p className="text-xs font-bold text-ink">{w.name}</p>
