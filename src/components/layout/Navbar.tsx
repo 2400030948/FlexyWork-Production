@@ -30,7 +30,7 @@ export default function Navbar() {
     };
 
     fetchUser();
-    const interval = setInterval(fetchUser, 5000);
+    const interval = setInterval(fetchUser, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -242,6 +242,7 @@ export default function Navbar() {
                         </>
                       )}
 
+                    {currentUser.role === 'admin' && (
                       <Link
                         href="/admin"
                         onClick={() => setShowDropdown(false)}
@@ -250,6 +251,7 @@ export default function Navbar() {
                         <Shield size={15} />
                         Admin Dashboard
                       </Link>
+                    )}
                     </div>
 
                     <div className="border-t border-surface-border py-1">

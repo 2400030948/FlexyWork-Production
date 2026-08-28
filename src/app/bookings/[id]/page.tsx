@@ -129,7 +129,7 @@ export default function BookingDetailPage() {
               </span>
               <div>
                 <p className={`text-xs font-bold ${getStepStatus('accepted') === 'done' ? 'text-ink' : 'text-ink-subtle'}`}>
-                  Worker Mathed & Confirmed
+                  Worker Matched & Confirmed
                 </p>
                 {getStepStatus('accepted') === 'done' ? (
                   <p className="text-[10px] text-ink-muted mt-0.5">Assigned to Priya Sharma. Service contract locked.</p>

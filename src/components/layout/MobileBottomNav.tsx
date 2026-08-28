@@ -16,7 +16,7 @@ export default function MobileBottomNav() {
       setCurrentUser(await getMe());
     };
     fetchUser();
-    const interval = setInterval(fetchUser, 5000);
+    const interval = setInterval(fetchUser, 30000);
     return () => clearInterval(interval);
   }, []);
 
