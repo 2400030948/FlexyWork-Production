@@ -24,20 +24,25 @@ export default function SeekerHome() {
       const user = await getMe();
       setCurrentUser(user);
 
-      if (user && user.role === 'worker') {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      if (user.role === 'worker') {
         router.push('/worker');
         return;
       }
 
       const [providersData, gigsData] = await Promise.all([
-        getProviders(),
-        user ? getMyGigs(user.id, user.role) : Promise.resolve([])
+        getProviders().catch(() => []),
+        getMyGigs(user.id, user.role).catch(() => [])
       ]);
       setProviders(providersData);
       setActiveGigs(gigsData);
     };
 
-    loadHomeData().catch(() => router.push('/login'));
+    loadHomeData();
   }, [router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {

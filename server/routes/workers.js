@@ -82,7 +82,7 @@ const searchQuerySchema = z.object({
   minRating: z.coerce.number().min(0).max(5).optional()
 });
 
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", async (req, res, next) => {
   try {
     const parsed = searchQuerySchema.safeParse(req.query);
     if (!parsed.success) return res.status(400).json({ message: "Invalid query parameters" });
