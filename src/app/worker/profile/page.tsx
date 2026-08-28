@@ -12,6 +12,7 @@ export default function WorkerProfileSettings() {
   const [profile, setProfile] = useState<WorkerProfile | null>(null);
   const [availability, setAvailability] = useState<AvailabilitySlot[]>([]);
   const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [rate, setRate] = useState(200);
   const [loading, setLoading] = useState(false);
@@ -30,6 +31,7 @@ export default function WorkerProfileSettings() {
         setProfile(wProfile);
         setAvailability(wProfile.availability);
         setName(wProfile.name);
+        setPhone(wProfile.phone || user.phone || '+91 98765 43210');
         setBio(wProfile.bio);
         setRate(wProfile.hourlyRate);
       }
@@ -62,9 +64,9 @@ export default function WorkerProfileSettings() {
     setSuccess('');
     try {
       await updateAvailability(profile.userId, availability);
-      const updatedProfile = await updateWorkerProfile({ name, bio, hourlyRate: rate });
+      const updatedProfile = await updateWorkerProfile({ name, phone, bio, hourlyRate: rate });
       setProfile({ ...updatedProfile, availability });
-      setSuccess('Profile configuration and availability calendar saved successfully.');
+      setSuccess('Profile configuration and phone number saved successfully.');
     } catch (err: any) {
       console.error(err);
     } finally {
@@ -80,7 +82,7 @@ export default function WorkerProfileSettings() {
       {/* Title Header */}
       <div>
         <h1 className="text-2xl font-extrabold text-ink tracking-tight">Worker Profile Settings</h1>
-        <p className="text-xs text-ink-muted mt-0.5">Customize your public bio, base hourly rates, and matching availability.</p>
+        <p className="text-xs text-ink-muted mt-0.5">Customize your contact phone number, public bio, base hourly rates, and matching availability.</p>
       </div>
 
       {success && (
@@ -95,7 +97,7 @@ export default function WorkerProfileSettings() {
         
         {/* Core Profile Card */}
         <div className="bg-white border border-surface-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-4">
-          <h3 className="font-bold text-sm text-ink border-b border-surface-border pb-2">Biographical details</h3>
+          <h3 className="font-bold text-sm text-ink border-b border-surface-border pb-2">Biographical & Contact details</h3>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
@@ -110,6 +112,18 @@ export default function WorkerProfileSettings() {
             </div>
 
             <div className="space-y-1">
+              <label className="text-xs font-bold text-ink-muted">Direct Phone Number (Shared with Employer)</label>
+              <input
+                type="tel"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="+91 98765 43210"
+                className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink font-bold text-brand-700"
+              />
+            </div>
+
+            <div className="space-y-1 sm:col-span-2">
               <label className="text-xs font-bold text-ink-muted">Base Hourly Rate (₹/hr)</label>
               <input
                 type="number"

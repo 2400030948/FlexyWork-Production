@@ -17,6 +17,7 @@ function serializeWorker(profile, user) {
     userId: profile.userId.toString(),
     name: user?.name || "FlexyWork Provider",
     email: user?.email || "",
+    phone: user?.phone || "+91 98765 43210",
     skills: profile.skills || [],
     bio: profile.bio || profile.experience || "Reliable local service provider.",
     location: profile.location || user?.location || "Vijayawada",
@@ -70,6 +71,7 @@ const availabilityPayload = z.object({
 
 const profilePayload = z.object({
   name: z.string().min(2).optional(),
+  phone: z.string().optional(),
   bio: z.string().min(2).optional(),
   hourlyRate: z.coerce.number().min(1).optional(),
   location: z.string().min(2).optional(),
@@ -89,37 +91,14 @@ router.get("/", async (req, res, next) => {
     const { search, category, minRating } = parsed.data;
 
     const query = {};
+    if (category) query.skills = { $in: [category] };
+    if (minRating !== undefined) query.rating = { $gte: minRating };
     if (search) {
       const regex = new RegExp(escapeRegex(search), "i");
-      const matchingUsers = await User.find({
-        $or: [{ name: regex }, { email: regex }],
-        role: "worker"
-      });
-      const userIds = matchingUsers.map((u) => u._id);
-
-      query.$or = [
-        { skills: regex },
-        { bio: regex },
-        { experience: regex },
-        { location: regex },
-        { userId: { $in: userIds } }
-      ];
-    }
-    if (category) {
-      // Use $and to combine with existing $or from search without overwriting
-      const categoryRegex = new RegExp(escapeRegex(category), "i");
-      if (query.$or) {
-        query.$and = [{ $or: query.$or }, { skills: categoryRegex }];
-        delete query.$or;
-      } else {
-        query.skills = categoryRegex;
-      }
-    }
-    if (minRating !== undefined) {
-      query.rating = { $gte: minRating };
+      query.$or = [{ bio: regex }, { experience: regex }, { location: regex }, { skills: regex }];
     }
 
-    const profiles = await WorkerProfile.find(query).sort({ rating: -1, reliabilityScore: -1 }).limit(50);
+    const profiles = await WorkerProfile.find(query).limit(50);
     res.json({ workers: await serializeWorkers(profiles) });
   } catch (error) {
     next(error);
@@ -143,6 +122,7 @@ router.put("/me", requireAuth, requireRole("worker"), async (req, res, next) => 
     const userUpdates = {};
 
     if (body.name) userUpdates.name = body.name;
+    if (body.phone) userUpdates.phone = body.phone;
     if (body.location) {
       userUpdates.location = body.location;
       profileUpdates.location = body.location;

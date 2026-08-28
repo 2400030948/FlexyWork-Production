@@ -144,14 +144,13 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
                   {loading ? 'Accepting...' : 'Accept Gig'}
                 </button>
               )}
-              {gig.status === 'ACCEPTED' && (
-                <button
-                  onClick={handleCheckIn}
-                  disabled={loading}
-                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-bold shadow-sm transition-colors disabled:opacity-50"
+              {(gig.status === 'ACCEPTED' || gig.status === 'filled') && (
+                <Link
+                  href={`/worker/gigs/${gig.id}`}
+                  className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 text-xs font-bold shadow-sm transition-colors flex items-center gap-1"
                 >
-                  {loading ? 'Checking in...' : 'Check In'}
-                </button>
+                  Go to Duty & Check In →
+                </Link>
               )}
               {gig.status === 'IN_PROGRESS' && (
                 <button

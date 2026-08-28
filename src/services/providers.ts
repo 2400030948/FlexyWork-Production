@@ -53,6 +53,7 @@ export async function updateAvailability(_workerId: string, availability: Availa
 
 export async function updateWorkerProfile(profile: {
   name?: string;
+  phone?: string;
   bio?: string;
   hourlyRate?: number;
   location?: string;

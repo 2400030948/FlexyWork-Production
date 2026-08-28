@@ -58,8 +58,11 @@ export async function acceptGig(gigId: string, _workerUserId?: string): Promise<
   await apiCall(`/api/shifts/${gigId}/accept`, { method: 'POST' });
 }
 
-export async function recordAttendance(gigId: string, action: 'check-in' | 'check-out'): Promise<void> {
-  await apiCall(`/api/attendance/${gigId}/${action}`, { method: 'POST' });
+export async function recordAttendance(gigId: string, action: 'check-in' | 'check-out', otp?: string): Promise<void> {
+  await apiCall(`/api/attendance/${gigId}/${action}`, {
+    method: 'POST',
+    body: JSON.stringify({ otp })
+  });
 }
 
 export async function getMyGigs(_userId?: string, _role?: UserRole): Promise<Gig[]> {

@@ -4,6 +4,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  phone?: string;
   role: UserRole;
   location?: string;
   avatarUrl?: string;
@@ -21,6 +22,7 @@ export interface WorkerProfile {
   userId: string;
   name: string;
   email: string;
+  phone?: string;
   skills: string[];
   bio: string;
   location: string;
@@ -74,6 +76,7 @@ export interface Gig {
   matchReasons?: string[];
   checkInTime?: string;
   checkOutTime?: string;
+  checkInOtp?: string;
 }
 
 export interface ShiftApplication {

@@ -25,7 +25,8 @@ const shiftSchema = new mongoose.Schema(
       default: "published"
     },
     urgency: { type: String, enum: ["normal", "urgent"], default: "normal" },
-    recurring: { type: Boolean, default: false }
+    recurring: { type: Boolean, default: false },
+    checkInOtp: { type: String }
   },
   { timestamps: true }
 );

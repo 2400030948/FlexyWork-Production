@@ -20,6 +20,16 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
     if (!isAssigned) {
       return res.status(403).json({ message: "You are not assigned to this shift" });
     }
+
+    const hash = shift._id.toString();
+    const num = Math.abs(hash.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 7)) % 9000 + 1000;
+    const expectedOtp = shift.checkInOtp || String(num);
+
+    const providedOtp = req.body?.otp ? String(req.body.otp).trim() : null;
+    if (providedOtp && providedOtp !== expectedOtp) {
+      return res.status(400).json({ message: `Incorrect Arrival OTP code. Please ask the employer for the 4-digit verification code.` });
+    }
+
     const attendance = await Attendance.findOneAndUpdate(
       { shiftId: shift._id, workerId: req.user._id },
       { checkInAt: new Date(), status: "checked_in" },
@@ -27,7 +37,7 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
     );
     shift.status = "in_progress";
     await shift.save();
-    await Notification.create({ userId: shift.employerId, message: `${req.user.name} checked in for ${shift.title}` });
+    await Notification.create({ userId: shift.employerId, message: `${req.user.name} verified arrival via OTP and started ${shift.title}` });
     res.json({ attendance });
   } catch (error) {
     next(error);

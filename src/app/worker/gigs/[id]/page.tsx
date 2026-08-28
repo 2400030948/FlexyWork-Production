@@ -6,7 +6,8 @@ import Link from 'next/link';
 import { 
   ArrowLeft, Calendar, Clock, MapPin, IndianRupee, 
   Play, CheckCircle, Navigation, Radio, CheckSquare, Square,
-  Hourglass, CheckCircle2, XCircle, ArrowRight, ShieldCheck, Sparkles
+  Hourglass, CheckCircle2, XCircle, ArrowRight, ShieldCheck, Sparkles,
+  KeyRound, AlertCircle
 } from 'lucide-react';
 import { Gig, User } from '../../../../types';
 import { getGigById, recordAttendance, applyForGig } from '../../../../services/gigs';
@@ -20,6 +21,8 @@ export default function WorkerGigDetailPage() {
   const [gig, setGig] = useState<Gig | null>(null);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [otpInput, setOtpInput] = useState('');
+  const [otpError, setOtpError] = useState<string | null>(null);
   const [checklist, setChecklist] = useState<{ id: number; text: string; done: boolean }[]>([
     { id: 1, text: 'Confirm location GPS matches check-in radius', done: false },
     { id: 2, text: 'Perform primary scope requirements', done: false },
@@ -63,14 +66,16 @@ export default function WorkerGigDetailPage() {
     }
   };
 
-  const handleAction = async (action: 'check-in' | 'check-out') => {
+  const handleAction = async (action: 'check-in' | 'check-out', otp?: string) => {
     if (!gig) return;
     setActionLoading(true);
+    setOtpError(null);
     try {
-      await recordAttendance(gig.id, action);
+      await recordAttendance(gig.id, action, otp);
+      setOtpInput('');
       await fetchGig();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      setOtpError(e.message || 'Failed to update attendance');
     } finally {
       setActionLoading(false);
     }
@@ -96,8 +101,11 @@ export default function WorkerGigDetailPage() {
     );
   }
 
-  const isAssigned = gig.assignedWorkerIds?.includes(currentUser?.id || '') || gig.applicationStatus === 'accepted';
-  const isPending = gig.applicationStatus === 'pending';
+  const isAssigned = gig.assignedWorkerIds?.includes(currentUser?.id || '') || 
+                     gig.applicationStatus === 'accepted' ||
+                     ['filled', 'in_progress', 'completed', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED'].includes(gig.status);
+
+  const isPending = gig.applicationStatus === 'pending' && !isAssigned;
   const isRejected = gig.applicationStatus === 'rejected';
 
   return (
@@ -137,22 +145,22 @@ export default function WorkerGigDetailPage() {
             <p className={isAssigned ? 'text-ink' : ''}>Approved & Confirmed</p>
           </div>
           <span className={`h-0.5 flex-grow ${
-            ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) ? 'bg-emerald-500' : 'bg-stone-200'
+            ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'bg-emerald-500' : 'bg-stone-200'
           }`} />
           <div className="space-y-1">
             <span className={`block h-2 w-2 rounded-full mx-auto ${
-              ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) ? 'bg-emerald-500' : 'bg-stone-200'
+              ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'bg-emerald-500' : 'bg-stone-200'
             }`} />
-            <p className={['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) ? 'text-ink' : ''}>On-Site (In-Progress)</p>
+            <p className={['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'text-ink' : ''}>On-Site (In-Progress)</p>
           </div>
           <span className={`h-0.5 flex-grow ${
-            ['COMPLETED', 'completed'].includes(gig.status) ? 'bg-emerald-500' : 'bg-stone-200'
+            ['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'bg-emerald-500' : 'bg-stone-200'
           }`} />
           <div className="space-y-1">
             <span className={`block h-2 w-2 rounded-full mx-auto ${
-              ['COMPLETED', 'completed'].includes(gig.status) ? 'bg-emerald-500' : 'bg-stone-200'
+              ['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'bg-emerald-500' : 'bg-stone-200'
             }`} />
-            <p className={['COMPLETED', 'completed'].includes(gig.status) ? 'text-ink' : ''}>Completed & Paid</p>
+            <p className={['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'text-ink' : ''}>Completed & Paid</p>
           </div>
         </div>
 
@@ -202,46 +210,96 @@ export default function WorkerGigDetailPage() {
           </div>
         )}
 
-        {/* STATE 4: ASSIGNED / ON-DUTY HUD */}
+        {/* STATE 4: ASSIGNED / ON-DUTY OTP CHECK-IN HUD */}
         {isAssigned && (
-          <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="font-extrabold text-brand-800 text-sm flex items-center gap-1.5">
-                <Radio size={14} className="text-brand-500 animate-pulse" />
-                Duty Location Matcher Active
-              </h3>
-              <p className="text-xxs text-brand-600 font-semibold mt-1">
-                {!gig.checkInTime && 'Check in when you arrive on site to log verified attendance.'}
-                {gig.checkInTime && !gig.checkOutTime && `Checked in at ${gig.checkInTime}. Check out when service is finished.`}
-                {gig.checkOutTime && `Shift finished at ${gig.checkOutTime}. Payout recorded.`}
-              </p>
+          <div className="bg-brand-50/80 border border-brand-100 rounded-3xl p-6 space-y-4">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <h3 className="font-extrabold text-brand-900 text-sm flex items-center gap-1.5">
+                  <Radio size={15} className="text-brand-600 animate-pulse" />
+                  On-Site Handshake & Arrival Verification (Step 3)
+                </h3>
+                <p className="text-xs text-brand-700 mt-0.5 font-medium">
+                  {!gig.checkInTime 
+                    ? 'Ask the employer on-site for their 4-digit Arrival OTP to verify check-in and start shift.'
+                    : !gig.checkOutTime 
+                    ? `Checked in at ${gig.checkInTime}. Complete required tasks and check out below when finished.`
+                    : `Shift finished at ${gig.checkOutTime}. Payout recorded.`}
+                </p>
+              </div>
+
+              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border ${
+                gig.checkInTime 
+                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
+                  : 'bg-amber-100 text-amber-800 border-amber-200'
+              }`}>
+                {gig.checkInTime ? '✓ On-Duty Verified' : 'Awaiting On-Site OTP'}
+              </span>
             </div>
 
-            <div className="shrink-0 w-full sm:w-auto">
-              {!gig.checkInTime && (
-                <button
-                  onClick={() => handleAction('check-in')}
-                  disabled={actionLoading}
-                  className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-5 py-3 text-xs font-bold transition-all shadow shadow-brand-500/10"
-                >
-                  <Play size={14} /> Check In
-                </button>
-              )}
-              {gig.checkInTime && !gig.checkOutTime && (
+            {/* OTP Entry Form if not yet checked in */}
+            {!gig.checkInTime && (
+              <div className="bg-white border border-brand-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <div className="relative flex-grow">
+                    <KeyRound size={16} className="absolute left-3.5 top-3 text-ink-subtle" />
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={otpInput}
+                      onChange={(e) => {
+                        setOtpInput(e.target.value);
+                        setOtpError(null);
+                      }}
+                      placeholder="Enter 4-digit code (e.g. 8492)"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-border text-xs font-bold text-ink placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => handleAction('check-in', otpInput)}
+                    disabled={actionLoading || otpInput.trim().length === 0}
+                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-xs font-extrabold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
+                  >
+                    {actionLoading ? 'Verifying...' : (
+                      <>
+                        <CheckCircle2 size={15} />
+                        Verify OTP & Check In
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {otpError && (
+                  <p className="text-xs font-bold text-rose-600 flex items-center gap-1">
+                    <AlertCircle size={13} />
+                    {otpError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Check-out button when in-progress */}
+            {gig.checkInTime && !gig.checkOutTime && (
+              <div className="flex justify-end pt-2">
                 <button
                   onClick={() => handleAction('check-out')}
                   disabled={actionLoading}
-                  className="w-full inline-flex justify-center items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-xs font-bold transition-all shadow"
+                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 text-xs font-extrabold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
                 >
-                  <CheckCircle size={14} /> Check Out & Finish
+                  <CheckCircle size={15} />
+                  Check Out & Finish Shift
                 </button>
-              )}
-              {gig.checkOutTime && (
-                <span className="w-full inline-flex items-center justify-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-xl px-4 py-2.5 text-xs font-bold">
-                  <CheckCircle size={13} /> Payout Disbursed
-                </span>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Completion Banner */}
+            {gig.checkOutTime && (
+              <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl p-4 text-xs font-bold flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-600" />
+                Shift Successfully Completed! Payout has been disbursed to your ledger.
+              </div>
+            )}
           </div>
         )}
 

@@ -247,7 +247,31 @@ export default function BookingDetailPage() {
                     Completed at <strong className="text-ink">{gig.checkOutTime}</strong>. Payout transferred to worker wallet.
                   </p>
                 ) : (
-                  <p className="text-[10px] text-ink-subtle mt-0.5">Waiting for work completion and check-out.</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
+                    <p className="text-[10px] text-ink-subtle">
+                      {gig.checkInTime ? 'Worker is actively on-duty. Click below once work is finished to release payout.' : 'Waiting for on-site arrival and check-in.'}
+                    </p>
+                    {gig.checkInTime && (
+                      <button
+                        onClick={async () => {
+                          setActionLoading('complete');
+                          try {
+                            await recordAttendance(gig.id, 'check-out');
+                            await fetchGigData();
+                          } catch (e: any) {
+                            alert(e.message || 'Failed to complete booking');
+                          } finally {
+                            setActionLoading(null);
+                          }
+                        }}
+                        disabled={actionLoading === 'complete'}
+                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1 shrink-0 disabled:opacity-50"
+                      >
+                        <CheckCircle size={13} />
+                        {actionLoading === 'complete' ? 'Settling...' : 'Verify Work & Settle Payout'}
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
@@ -345,36 +369,62 @@ export default function BookingDetailPage() {
               </span>
             </div>
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-4 rounded-2xl border border-emerald-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-5 rounded-2xl border border-emerald-100">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center rounded-xl text-sm border border-brand-200">
+                <div className="h-12 w-12 bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center rounded-2xl text-base border border-brand-200 shrink-0">
                   {acceptedApps[0]?.worker?.name?.charAt(0) || 'W'}
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-ink">
+                <div className="space-y-0.5">
+                  <p className="text-sm font-bold text-ink flex items-center gap-1.5">
                     {acceptedApps[0]?.worker?.name || 'Assigned Worker'}
+                    <span title="Verified Worker">
+                      <ShieldCheck size={14} className="text-emerald-500" />
+                    </span>
                   </p>
-                  <p className="text-[10px] text-ink-muted mt-0.5">
-                    {gig.category} · Verified Independent Professional
+                  <p className="text-xs text-ink-muted">
+                    {gig.category} · Verified Shift Professional
+                  </p>
+                  <p className="text-xs font-extrabold text-brand-700 pt-0.5 flex items-center gap-1">
+                    <Phone size={12} className="text-brand-500" />
+                    {acceptedApps[0]?.worker?.phone || '+91 98765 43210'}
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => alert('Simulated Secure Voice Call to worker initiated.')}
-                  className="p-2.5 bg-white border border-surface-border text-ink hover:text-brand-500 rounded-xl transition-all shadow-xs"
-                  title="Call worker"
+              <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto justify-end">
+                <a 
+                  href={`tel:${acceptedApps[0]?.worker?.phone || '+919876543210'}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-xs font-bold transition-all shadow-xs"
+                  title="Call worker phone"
                 >
-                  <Phone size={14} />
-                </button>
-                <button 
-                  onClick={() => alert('Simulated Secure In-App Chat initiated.')}
-                  className="p-2.5 bg-white border border-surface-border text-ink hover:text-brand-500 rounded-xl transition-all shadow-xs"
-                  title="Message worker"
+                  <Phone size={13} />
+                  Call Worker
+                </a>
+                <a 
+                  href={`https://wa.me/${(acceptedApps[0]?.worker?.phone || '919876543210').replace(/[^0-9]/g, '')}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-green-50 hover:bg-green-100 text-green-800 border border-green-200 rounded-xl text-xs font-bold transition-all shadow-xs"
+                  title="Chat on WhatsApp"
                 >
-                  <MessageSquare size={14} />
-                </button>
+                  <MessageSquare size={13} />
+                  WhatsApp
+                </a>
+              </div>
+            </div>
+
+            {/* OTP Handshake Box */}
+            <div className="bg-amber-50 border border-amber-200/80 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <p className="text-xs font-extrabold text-amber-900 flex items-center gap-1.5">
+                  🔐 Arrival Verification OTP (Step 3)
+                </p>
+                <p className="text-[11px] text-amber-800 mt-0.5">
+                  Give this 4-digit code to the worker when they arrive at your location to verify on-site arrival and begin duty.
+                </p>
+              </div>
+              <div className="bg-white border-2 border-dashed border-amber-400 px-5 py-2 rounded-xl text-xl font-black tracking-widest text-amber-900 shadow-sm shrink-0">
+                {gig.checkInOtp || '8492'}
               </div>
             </div>
           </div>

@@ -48,6 +48,9 @@ async function serializeShift(shift, workerProfile, viewerId) {
   }
 
   const assignedWorkerIds = (shift.assignedWorkerIds || []).map((id) => id.toString());
+  const hash = shift._id.toString();
+  const num = Math.abs(hash.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 7)) % 9000 + 1000;
+  const checkInOtp = shift.checkInOtp || String(num);
 
   return {
     id: shift._id.toString(),
@@ -74,7 +77,8 @@ async function serializeShift(shift, workerProfile, viewerId) {
     matchScore: match ? match.score : 85,
     matchReasons: match ? match.reasons : ["Flexible shift in your area"],
     checkInTime: attendance?.checkInTime ? new Date(attendance.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-    checkOutTime: attendance?.checkOutTime ? new Date(attendance.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined
+    checkOutTime: attendance?.checkOutTime ? new Date(attendance.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+    checkInOtp
   };
 }
 
