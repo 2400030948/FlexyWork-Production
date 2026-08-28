@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import AdminDashboard from '../page';
+import AdminDashboard from '../../../components/admin/AdminDashboard';
 
 export default function AdminCommunitiesPage() {
   return <AdminDashboard initialTab="communities" />;

@@ -265,8 +265,10 @@ main { overflow: hidden; }
   height: var(--size);
   border-radius: 50%;
   background: conic-gradient(var(--green) var(--score), var(--subtle) 0);
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 18px;
   position: relative;
 }
@@ -278,8 +280,18 @@ main { overflow: hidden; }
   border-radius: 50%;
 }
 .score-ring span, .score-ring small { position: relative; z-index: 1; }
-.score-ring span { font-size: 2rem; font-weight: 850; color: var(--green); }
-.score-ring small { display: block; color: var(--muted); margin-top: 40px; margin-left: -62px; }
+.score-ring span {
+  font-size: 2rem;
+  font-weight: 850;
+  color: var(--green);
+  line-height: 1;
+}
+.score-ring small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.2;
+  margin-top: 6px;
+}
 .check-list {
   list-style: none;
   padding: 0;
@@ -359,6 +371,7 @@ input, select {
   gap: 16px;
 }
 .auth-panel p, .muted { color: var(--muted); }
+.auth-panel p { margin: 0; }
 .notice {
   border-radius: var(--radius);
   padding: 12px 14px;
@@ -387,13 +400,43 @@ input, select {
 .compact-form label { display: block; }
 .compact-form input { margin-top: 5px; }
 .save-availability, .shifts-panel { margin-top: 18px; }
+.availability-tools {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+.availability-tools .panel {
+  display: grid;
+  gap: 10px;
+}
+.notice-list {
+  display: grid;
+  gap: 10px;
+}
+.notice-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.notice-item small {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.payment-action {
+  margin-top: 8px;
+}
 .parsed {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin: 16px 0;
 }
-.parsed div {
+.parsed div, .parsed label {
   background: var(--surface-2);
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -474,7 +517,7 @@ footer {
   .hero-overlay { background: linear-gradient(0deg, rgba(8, 18, 38, 0.86) 0%, rgba(8, 18, 38, 0.42) 62%, rgba(8, 18, 38, 0.18) 100%); }
   .nav div { display: none; }
   .match-float { position: relative; right: auto; bottom: auto; margin-top: 28px; }
-  .dashboard-grid, .employer-grid, .choice-grid, .flow-grid, .trust-grid { grid-template-columns: 1fr; }
+  .dashboard-grid, .employer-grid, .choice-grid, .flow-grid, .trust-grid, .availability-tools { grid-template-columns: 1fr; }
   .stats-row, .detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -485,6 +528,8 @@ footer {
   h1 { font-size: 3.25rem; }
   .hero-content p:not(.eyebrow) { font-size: 1rem; }
   .hero-actions, .button-row { align-items: stretch; flex-direction: column; }
+  .auth-panel, .notice-item { align-items: stretch; flex-direction: column; }
+  .notice-item small { white-space: normal; }
   .primary, .secondary { width: 100%; }
   .steps, .stats-row, .detail-grid, .parsed, .filter-row { grid-template-columns: 1fr; }
   .worker-card { grid-template-columns: 44px 1fr; }

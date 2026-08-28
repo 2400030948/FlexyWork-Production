@@ -1,19 +1,29 @@
-import { db } from '../mock/data';
 import { User, UserRole } from '../types';
-import { delay, apiCall } from './api';
+import { apiCall } from './api';
+
+type ApiUser = Omit<User, 'role' | 'avatarUrl'> & {
+  role: 'worker' | 'employer' | 'admin';
+  profileImage?: string;
+};
+
+function fromApiUser(user: ApiUser): User {
+  return {
+    ...user,
+    role: user.role === 'employer' ? 'seeker' : user.role,
+    avatarUrl: user.profileImage
+  };
+}
+
+function toApiRole(role: UserRole): 'worker' | 'employer' {
+  return role === 'worker' ? 'worker' : 'employer';
+}
 
 export async function login(email: string, password: string): Promise<User> {
-  await delay(600); // Simulate network delay
-  
-  const users = db.getUsers();
-  const user = users.find(u => u.email === email);
-  
-  if (!user) {
-    throw new Error('User not found with this email.');
-  }
-  
-  db.setCurrentUser(user);
-  return user;
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify({ email, password })
+  });
+  return fromApiUser(data.user);
 }
 
 export async function signup(
@@ -23,67 +33,29 @@ export async function signup(
   location: string,
   businessName?: string
 ): Promise<User> {
-  await delay(800);
-  
-  const users = db.getUsers();
-  if (users.some(u => u.email === email)) {
-    throw new Error('An account with this email already exists.');
-  }
-
-  const userId = `user_${Date.now()}`;
-  const newUser: User = {
-    id: userId,
-    name,
-    email,
-    role,
-    location,
-    avatarUrl: `/avatars/placeholder.jpg`
-  };
-
-  // Add to user store
-  db.updateUsers([...users, newUser]);
-
-  // If worker, seed profile
-  if (role === 'worker') {
-    const workers = db.getWorkers();
-    const newWorkerProfile = {
-      id: `w_${Date.now()}`,
-      userId,
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/register', {
+    method: 'POST',
+    body: JSON.stringify({
       name,
       email,
-      skills: [],
-      bio: 'New gig worker on FLEXYWORK. Ready for opportunities!',
+      password: 'password123',
+      role: toApiRole(role),
       location,
-      distance: 0.1,
-      rating: 5.0,
-      completedGigsCount: 0,
-      reliabilityScore: 100,
-      hourlyRate: 200,
-      isVerified: false,
-      isTopRated: false,
-      availability: [
-        { day: 'Mon', status: 'Available', ranges: ['9 AM - 5 PM'] },
-        { day: 'Tue', status: 'Available', ranges: ['9 AM - 5 PM'] },
-        { day: 'Wed', status: 'Available', ranges: ['9 AM - 5 PM'] },
-        { day: 'Thu', status: 'Available', ranges: ['9 AM - 5 PM'] },
-        { day: 'Fri', status: 'Available', ranges: ['9 AM - 5 PM'] },
-        { day: 'Sat', status: 'Unavailable', ranges: [] },
-        { day: 'Sun', status: 'Unavailable', ranges: [] }
-      ]
-    };
-    db.updateWorkers([...workers, newWorkerProfile]);
-  }
-
-  db.setCurrentUser(newUser);
-  return newUser;
+      businessName
+    })
+  });
+  return fromApiUser(data.user);
 }
 
 export async function logout(): Promise<void> {
-  await delay(300);
-  db.setCurrentUser(null);
+  await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
 }
 
 export async function getMe(): Promise<User | null> {
-  await delay(100);
-  return db.getCurrentUser();
+  try {
+    const data = await apiCall<{ user: ApiUser }>('/api/auth/me');
+    return fromApiUser(data.user);
+  } catch {
+    return null;
+  }
 }

@@ -3,11 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, RefreshCw, Star, MapPin, Search } from 'lucide-react';
-import { db } from '../../mock/data';
 import { Gig, User } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import GigCard from '../../components/shared/GigCard';
 import EmptyState from '../../components/ui/EmptyState';
+import { getMe } from '../../services/auth';
+import { getMyGigs } from '../../services/gigs';
 
 export default function BookingsPage() {
   const router = useRouter();
@@ -16,9 +17,9 @@ export default function BookingsPage() {
   const [activeTab, setActiveTab] = useState<'upcoming' | 'active' | 'completed'>('upcoming');
   const [loading, setLoading] = useState(true);
 
-  const fetchBookings = () => {
+  const fetchBookings = async () => {
     setLoading(true);
-    const user = db.getCurrentUser();
+    const user = await getMe();
     setCurrentUser(user);
 
     if (!user) {
@@ -26,14 +27,14 @@ export default function BookingsPage() {
       return;
     }
 
-    const myGigs = db.getGigs().filter(g => g.employerId === user.id);
+    const myGigs = await getMyGigs(user.id, user.role);
     setGigs(myGigs);
     setLoading(false);
   };
 
   useEffect(() => {
     fetchBookings();
-    const interval = setInterval(fetchBookings, 2000); // Polling for demo states
+    const interval = setInterval(fetchBookings, 5000);
     return () => clearInterval(interval);
   }, []);
 

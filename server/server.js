@@ -3,7 +3,12 @@ import dotenv from "dotenv";
 import express from "express";
 import { connectDb } from "./config/db.js";
 import attendanceRoutes from "./routes/attendance.js";
+import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
+import communityRoutes from "./routes/communities.js";
+import notificationRoutes from "./routes/notifications.js";
+import paymentRoutes from "./routes/payments.js";
+import ratingRoutes from "./routes/ratings.js";
 import shiftRoutes from "./routes/shifts.js";
 import workerRoutes from "./routes/workers.js";
 
@@ -20,9 +25,14 @@ app.get("/api/health", (_req, res) => {
 });
 
 app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/communities", communityRoutes);
 app.use("/api/shifts", shiftRoutes);
 app.use("/api/workers", workerRoutes);
 app.use("/api/attendance", attendanceRoutes);
+app.use("/api/payments", paymentRoutes);
+app.use("/api/ratings", ratingRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use((error, _req, res, _next) => {
   if (error?.name === "ZodError") {

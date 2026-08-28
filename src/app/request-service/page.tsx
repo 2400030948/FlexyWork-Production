@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { 
   ChevronRight, ChevronLeft, Calendar, MapPin, IndianRupee, 
@@ -10,7 +10,7 @@ import { getProviderById } from '../../services/providers';
 import { createGig } from '../../services/gigs';
 import { WorkerProfile } from '../../types';
 
-export default function RequestServiceWizard() {
+function RequestServiceWizardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -165,7 +165,7 @@ export default function RequestServiceWizard() {
                   ? 'border-emerald-500 bg-emerald-50 text-emerald-600'
                   : 'border-surface-border bg-white'
               }`}>
-                {s < step ? '✓' : s}
+                {s < step ? <Check size={12} /> : s}
               </span>
               {s < 5 && <span className="h-0.5 w-6 bg-stone-200" />}
             </React.Fragment>
@@ -405,5 +405,13 @@ export default function RequestServiceWizard() {
       </div>
 
     </div>
+  );
+}
+
+export default function RequestServiceWizard() {
+  return (
+    <Suspense fallback={<div className="h-64 flex items-center justify-center text-xs font-semibold text-ink-subtle uppercase tracking-wider">Loading request form...</div>}>
+      <RequestServiceWizardContent />
+    </Suspense>
   );
 }

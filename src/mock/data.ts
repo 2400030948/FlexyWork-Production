@@ -3,7 +3,7 @@ import { User, WorkerProfile, Gig, Booking, Community, CooperativeGig, Notificat
 export const INITIAL_USERS: User[] = [
   {
     id: 'user_harshita',
-    name: 'Harshita👋',
+    name: 'Harshita',
     email: 'harshita@flexywork.local',
     role: 'seeker',
     location: 'Vijayawada, India',
@@ -153,7 +153,7 @@ export const INITIAL_GIGS: Gig[] = [
     urgency: 'normal',
     status: 'ACCEPTED',
     employerId: 'user_harshita',
-    employerName: 'Harshita👋',
+    employerName: 'Harshita',
     assignedWorkerIds: ['user_priya'],
     applicationStatus: 'accepted',
     matchScore: 98,
@@ -178,7 +178,7 @@ export const INITIAL_GIGS: Gig[] = [
     urgency: 'normal',
     status: 'REQUESTED',
     employerId: 'user_harshita',
-    employerName: 'Harshita👋',
+    employerName: 'Harshita',
     assignedWorkerIds: [],
     applicationStatus: 'pending',
     matchScore: 95,
@@ -203,7 +203,7 @@ export const INITIAL_GIGS: Gig[] = [
     urgency: 'normal',
     status: 'REQUESTED',
     employerId: 'user_harshita',
-    employerName: 'Harshita👋',
+    employerName: 'Harshita',
     assignedWorkerIds: [],
     applicationStatus: null
   }
@@ -218,7 +218,7 @@ export const INITIAL_COMMUNITIES: Community[] = [
     services: ['Cleaning', 'Gardening', 'Elder Care', 'Cooking', 'Event Help'],
     totalEarnings: 342500,
     bannerImage: '/images/collective-banner.jpg',
-    logo: '🤝',
+    logo: 'VH',
     description: 'A local worker cooperative of skilled home professionals collaborating on gigs, sharing equipment, pooling transport, and bidding on larger commercial estate and apartment contracts together.',
     activityFeed: [
       { id: 'act_1', text: 'Priya Sharma completed 25 gigs this month.', timestamp: '2 hours ago' },
@@ -235,7 +235,7 @@ export const INITIAL_COMMUNITIES: Community[] = [
     services: ['Wiring & Repairs', 'Appliance Installation', 'Solar Panel Maintenance', 'HVAC Servicing'],
     totalEarnings: 189000,
     bannerImage: '/images/electrician-banner.jpg',
-    logo: '⚡',
+    logo: 'KE',
     description: 'Connecting certified electricians across the region. We standardise pricing, handle bulk contracts for commercial construction sites, and provide peer-reviewed skills upskilling sessions.',
     activityFeed: [
       { id: 'act_5', text: 'Amit Patel joined the Electricians Collective.', timestamp: '4 hours ago' },

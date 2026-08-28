@@ -4,8 +4,10 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Star, MapPin, User, LogOut, ChevronRight, Award, ShieldCheck } from 'lucide-react';
-import { db } from '../../mock/data';
-import { User as UserType, WorkerProfile, Gig } from '../../types';
+import { User as UserType, WorkerProfile } from '../../types';
+import { getMe, logout } from '../../services/auth';
+import { getMyGigs } from '../../services/gigs';
+import { getProviders } from '../../services/providers';
 
 export default function SeekerProfilePage() {
   const router = useRouter();
@@ -14,29 +16,27 @@ export default function SeekerProfilePage() {
   const [stats, setStats] = useState({ upcoming: 0, completed: 0 });
 
   useEffect(() => {
-    const user = db.getCurrentUser();
-    setCurrentUser(user);
+    const loadProfile = async () => {
+      const user = await getMe();
+      setCurrentUser(user);
 
-    if (!user) {
-      router.push('/login');
-      return;
-    }
+      if (!user) {
+        router.push('/login');
+        return;
+      }
 
-    // Load statistics
-    const gigs = db.getGigs().filter(g => g.employerId === user.id);
-    const upcoming = gigs.filter(g => g.status === 'REQUESTED' || g.status === 'ACCEPTED' || g.status === 'IN_PROGRESS').length;
-    const completed = gigs.filter(g => g.status === 'COMPLETED').length;
-    setStats({ upcoming, completed });
+      const [gigs, workers] = await Promise.all([getMyGigs(user.id, user.role), getProviders()]);
+      const upcoming = gigs.filter(g => g.status === 'REQUESTED' || g.status === 'ACCEPTED' || g.status === 'IN_PROGRESS').length;
+      const completed = gigs.filter(g => g.status === 'COMPLETED').length;
+      setStats({ upcoming, completed });
+      setFavorites(workers.slice(0, 1));
+    };
 
-    // Load first mock worker as favorite helper
-    const workers = db.getWorkers();
-    if (workers.length > 0) {
-      setFavorites([workers[0]]);
-    }
+    loadProfile();
   }, [router]);
 
-  const handleLogout = () => {
-    db.setCurrentUser(null);
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 

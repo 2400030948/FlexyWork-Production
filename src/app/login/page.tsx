@@ -40,7 +40,7 @@ export default function LoginPage() {
   const handleQuickLogin = async (role: 'seeker' | 'worker' | 'admin') => {
     setLoading(true);
     setError('');
-    let demoEmail = 'harshita@flexywork.local';
+    let demoEmail = 'employer@flexywork.local';
     if (role === 'worker') demoEmail = 'worker@flexywork.local';
     if (role === 'admin') demoEmail = 'admin@flexywork.local';
 
@@ -85,7 +85,7 @@ export default function LoginPage() {
         {/* Quick Demo Login panel */}
         <div className="bg-brand-50/50 border border-brand-100 rounded-xl p-4 space-y-3">
           <p className="text-xxs font-extrabold uppercase tracking-wider text-brand-700 text-center">
-            ⚡ Quick Demo Login (Skip Form Entry)
+            Quick Demo Login (Skip Form Entry)
           </p>
           <div className="grid grid-cols-3 gap-2">
             <button
@@ -129,7 +129,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. seeker@flexywork.local"
+              placeholder="e.g. employer@flexywork.local"
               className="w-full rounded-xl border border-surface-border bg-stone-50/50 px-4 py-2.5 text-sm text-ink"
             />
           </div>

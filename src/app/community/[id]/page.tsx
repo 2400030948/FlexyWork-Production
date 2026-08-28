@@ -7,9 +7,8 @@ import {
   Users, Handshake, Star, ArrowLeft, Layers, 
   MapPin, Check, Sparkles, TrendingUp, UserCheck 
 } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Community, CooperativeGig } from '../../types';
-import { getCommunityById, getCoopGigs } from '../../services/communities';
+import { Community, CooperativeGig } from '../../../types';
+import { getCommunityById, getCoopGigs } from '../../../services/communities';
 
 export default function CommunityDetailPage() {
   const params = useParams();

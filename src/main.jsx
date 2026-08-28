@@ -71,6 +71,49 @@ function Notice({ message, type = "success" }) {
   return <div className={`notice ${type}`}>{message}</div>;
 }
 
+function LoginPrompt({ role }) {
+  return (
+    <section className="workspace">
+      <div className="panel intro">
+        <p className="eyebrow"><ShieldCheck size={16} />Protected workspace</p>
+        <h2>{role === "worker" ? "Sign in to find real shifts." : "Sign in to manage real hiring."}</h2>
+        <p>Choose your role above and use the account panel to continue with MongoDB-backed data.</p>
+      </div>
+    </section>
+  );
+}
+
+function Notifications({ user, refreshKey }) {
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    if (!user) return;
+    api("/api/notifications").then((data) => setNotifications(data.notifications)).catch(() => {});
+  }, [user, refreshKey]);
+
+  if (!user) return null;
+
+  return (
+    <section className="section">
+      <div className="section-title">
+        <p className="eyebrow"><BellRing size={16} />Notifications</p>
+        <h2>Recent shift updates.</h2>
+      </div>
+      <div className="panel">
+        {notifications.length === 0 && <div className="empty-state">No notifications yet.</div>}
+        <div className="notice-list">
+          {notifications.map((item) => (
+            <div className="notice-item" key={item._id}>
+              <span>{item.message}</span>
+              <small>{new Date(item.createdAt).toLocaleString()}</small>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ShiftCard({ shift, selected, onClick }) {
   const score = shift.match?.score ?? 82;
   return (
@@ -259,6 +302,8 @@ function WorkerDashboard({ user, refreshKey }) {
   const upcoming = mine.filter((shift) => ["published", "filled", "in_progress"].includes(shift.status));
   const completed = mine.filter((shift) => shift.status === "completed");
 
+  if (!user) return <LoginPrompt role="worker" />;
+
   return (
     <section className="workspace" id="worker">
       <div className="panel intro">
@@ -309,7 +354,7 @@ function WorkerDashboard({ user, refreshKey }) {
                 {(selected.match?.reasons || []).map((reason) => <li key={reason}><Check />{reason}</li>)}
               </ul>
               <button className="primary wide" onClick={apply} disabled={Boolean(selected.applicationStatus)}>
-                {selected.applicationStatus ? `Application ${selected.applicationStatus}` : "Accept Shift"}
+                {selected.applicationStatus ? `Application ${selected.applicationStatus}` : "Apply for Shift"}
               </button>
               <Notice message={message} type={message.includes("already") || message.includes("failed") ? "error" : "success"} />
             </>
@@ -332,11 +377,19 @@ function WorkerDashboard({ user, refreshKey }) {
 
 function Availability({ user }) {
   const [availability, setAvailability] = useState(defaultAvailability);
+  const [dateOverrides, setDateOverrides] = useState([]);
+  const [unavailablePeriods, setUnavailablePeriods] = useState([]);
+  const [override, setOverride] = useState({ date: "", status: "Unavailable", ranges: "" });
+  const [period, setPeriod] = useState({ startDate: "", endDate: "", reason: "" });
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (user?.role !== "worker") return;
-    api("/api/workers/me/availability").then((data) => setAvailability(data.availability.length ? data.availability : defaultAvailability)).catch(() => {});
+    api("/api/workers/me/availability").then((data) => {
+      setAvailability(data.availability.length ? data.availability : defaultAvailability);
+      setDateOverrides(data.dateOverrides || []);
+      setUnavailablePeriods(data.unavailablePeriods || []);
+    }).catch(() => {});
   }, [user]);
 
   function toggle(day) {
@@ -351,11 +404,29 @@ function Availability({ user }) {
 
   async function save() {
     try {
-      await api("/api/workers/me/availability", { method: "PUT", body: JSON.stringify({ availability }) });
+      await api("/api/workers/me/availability", {
+        method: "PUT",
+        body: JSON.stringify({ availability, dateOverrides, unavailablePeriods })
+      });
       setMessage("Availability saved");
     } catch (error) {
       setMessage(error.message);
     }
+  }
+
+  function addOverride() {
+    if (!override.date) return;
+    setDateOverrides((items) => [
+      ...items.filter((item) => item.date !== override.date),
+      { date: override.date, status: override.status, ranges: override.ranges ? [override.ranges] : [] }
+    ]);
+    setOverride({ date: "", status: "Unavailable", ranges: "" });
+  }
+
+  function addPeriod() {
+    if (!period.startDate || !period.endDate) return;
+    setUnavailablePeriods((items) => [...items, period]);
+    setPeriod({ startDate: "", endDate: "", reason: "" });
   }
 
   return (
@@ -376,6 +447,32 @@ function Availability({ user }) {
           </button>
         ))}
       </div>
+      {!user && <div className="empty-state">Sign in as a worker to save availability.</div>}
+      {user?.role === "employer" && <div className="empty-state">Worker availability appears here when viewing worker profiles and applications.</div>}
+      {user?.role === "worker" && (
+        <div className="availability-tools">
+          <div className="panel compact-form">
+            <h3>Date override</h3>
+            <input value={override.date} onChange={(event) => setOverride({ ...override, date: event.target.value })} type="date" />
+            <select value={override.status} onChange={(event) => setOverride({ ...override, status: event.target.value })}>
+              <option>Available</option>
+              <option>Limited</option>
+              <option>Unavailable</option>
+            </select>
+            <input value={override.ranges} onChange={(event) => setOverride({ ...override, ranges: event.target.value })} placeholder="7 PM - 9 PM" />
+            <button className="secondary wide" onClick={addOverride}>Add Override</button>
+            {dateOverrides.map((item) => <p className="muted" key={item.date}>{item.date} · {item.status} · {item.ranges.join(", ") || "No ranges"}</p>)}
+          </div>
+          <div className="panel compact-form">
+            <h3>Unavailable period</h3>
+            <input value={period.startDate} onChange={(event) => setPeriod({ ...period, startDate: event.target.value })} type="date" />
+            <input value={period.endDate} onChange={(event) => setPeriod({ ...period, endDate: event.target.value })} type="date" />
+            <input value={period.reason} onChange={(event) => setPeriod({ ...period, reason: event.target.value })} placeholder="Reason" />
+            <button className="secondary wide" onClick={addPeriod}>Add Period</button>
+            {unavailablePeriods.map((item) => <p className="muted" key={`${item.startDate}-${item.endDate}`}>{item.startDate} to {item.endDate} · {item.reason || "Unavailable"}</p>)}
+          </div>
+        </div>
+      )}
       {user?.role === "worker" && <button className="primary save-availability" onClick={save}>Save Availability</button>}
       <Notice message={message} type={message.includes("saved") ? "success" : "error"} />
     </section>
@@ -424,6 +521,8 @@ function EmployerDashboard({ user, onPublished }) {
     open: shifts.reduce((total, shift) => total + Math.max(0, shift.workersRequired - shift.filledCount), 0),
     completed: shifts.filter((shift) => shift.status === "completed").length
   }), [shifts]);
+
+  if (!user) return <LoginPrompt role="employer" />;
 
   async function parsePrompt() {
     try {
@@ -525,12 +624,17 @@ function EmployerDashboard({ user, onPublished }) {
 
 function ExecutionFlow({ user }) {
   const [mine, setMine] = useState([]);
+  const [payments, setPayments] = useState([]);
+  const [ratings, setRatings] = useState([]);
   const [message, setMessage] = useState("");
   const accepted = mine.find((shift) => shift.applicationStatus === "accepted");
+  const completed = mine.find((shift) => shift.status === "completed") || accepted;
 
   useEffect(() => {
     if (user?.role !== "worker") return;
     api("/api/shifts/mine").then((data) => setMine(data.shifts)).catch(() => {});
+    api("/api/payments").then((data) => setPayments(data.payments)).catch(() => {});
+    api("/api/ratings").then((data) => setRatings(data.ratings)).catch(() => {});
   }, [user, message]);
 
   async function attendance(action) {
@@ -542,6 +646,23 @@ function ExecutionFlow({ user }) {
       setMessage(error.message);
     }
   }
+
+  async function rateEmployer() {
+    if (!completed?.employerInfo?.id) return;
+    try {
+      await api(`/api/ratings/${completed.id}`, {
+        method: "POST",
+        body: JSON.stringify({ toUserId: completed.employerInfo.id, rating: 5, review: "Reliable shift experience" })
+      });
+      setMessage("Rating submitted.");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  const latestPayment = payments[0];
+
+  if (!user || user.role !== "worker") return null;
 
   return (
     <section className="section execution">
@@ -565,10 +686,70 @@ function ExecutionFlow({ user }) {
         <div className="panel compact paid">
           <IndianRupee />
           <h3>Shift Completed</h3>
-          <strong>{accepted ? `₹${accepted.paymentAmount}` : "₹0"}</strong>
-          <p>Payment: Simulated for MVP</p>
+          <strong>{latestPayment ? `₹${latestPayment.amount}` : accepted ? `₹${accepted.paymentAmount}` : "₹0"}</strong>
+          <p>Payment: {latestPayment?.status || "Pending after checkout"}</p>
+          <button className="secondary wide" disabled={!completed} onClick={rateEmployer}>
+            {ratings.length ? "Rated" : "Rate Employer"}
+          </button>
         </div>
       </div>
+    </section>
+  );
+}
+
+function EmployerPayments({ user }) {
+  const [payments, setPayments] = useState([]);
+  const [shifts, setShifts] = useState([]);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    if (user?.role !== "employer") return;
+    api("/api/payments").then((data) => setPayments(data.payments)).catch(() => {});
+    api("/api/shifts/mine").then((data) => setShifts(data.shifts)).catch(() => {});
+  }, [user, message]);
+
+  async function markPaid(shiftId) {
+    try {
+      await api(`/api/payments/${shiftId}/mark-paid`, { method: "POST" });
+      setMessage("Payment marked paid.");
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  if (user?.role !== "employer") return null;
+  const completed = shifts.filter((shift) => shift.status === "completed");
+
+  return (
+    <section className="section">
+      <div className="section-title">
+        <p className="eyebrow"><IndianRupee size={16} />Payments</p>
+        <h2>Mark completed shifts paid.</h2>
+      </div>
+      <div className="flow-grid">
+        <div className="panel compact">
+          <Banknote />
+          <h3>Completed Shifts</h3>
+          {completed.length === 0 && <p>No completed shifts ready for payment.</p>}
+          {completed.map((shift) => (
+            <button className="secondary wide payment-action" key={shift.id} onClick={() => markPaid(shift.id)}>
+              Mark {shift.title} Paid
+            </button>
+          ))}
+        </div>
+        <div className="panel compact paid">
+          <IndianRupee />
+          <h3>Payment Records</h3>
+          <strong>{payments.length}</strong>
+          <p>{payments[0]?.status || "No payment records yet"}</p>
+        </div>
+        <div className="panel compact">
+          <Star />
+          <h3>Ratings</h3>
+          <p>Workers and employers can rate completed shifts.</p>
+        </div>
+      </div>
+      <Notice message={message} type={message.includes("paid") ? "success" : "error"} />
     </section>
   );
 }
@@ -635,6 +816,8 @@ function App() {
           <EmployerDashboard user={user} onPublished={() => setRefreshKey((key) => key + 1)} />
         )}
         <Availability user={user} />
+        <Notifications user={user} refreshKey={refreshKey} />
+        <EmployerPayments user={user} />
         <ExecutionFlow user={user} />
         <Trust />
       </main>

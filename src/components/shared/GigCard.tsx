@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, Clock, MapPin, IndianRupee, Sparkles, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, IndianRupee, Sparkles, ChevronRight, CheckCircle } from 'lucide-react';
 import { Gig } from '../../types';
 import StatusBadge from '../ui/StatusBadge';
 import { acceptGig, recordAttendance } from '../../services/gigs';
@@ -23,8 +23,7 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
     setLoading(true);
     setError('');
     try {
-      // Assign Priya Sharma (worker@flexywork.local) as mock worker
-      await acceptGig(gig.id, 'user_priya');
+      await acceptGig(gig.id, '');
       if (onActionComplete) onActionComplete();
     } catch (err: any) {
       setError(err.message || 'Failed to accept gig.');
@@ -165,7 +164,7 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
               )}
               {gig.status === 'COMPLETED' && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 flex items-center gap-1">
-                  ✓ Done & Paid
+                  <CheckCircle size={13} /> Done & Paid
                 </span>
               )}
             </>

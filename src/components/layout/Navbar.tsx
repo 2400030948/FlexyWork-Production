@@ -4,8 +4,9 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield } from 'lucide-react';
-import { db } from '../../mock/data';
 import { User as UserType } from '../../types';
+import { getMe, logout } from '../../services/auth';
+import { getNotifications } from '../../services/notifications';
 
 export default function Navbar() {
   const router = useRouter();
@@ -15,53 +16,32 @@ export default function Navbar() {
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    // Poll local database state
-    const fetchUser = () => {
-      const user = db.getCurrentUser();
+    const fetchUser = async () => {
+      const user = await getMe();
       setCurrentUser(user);
 
       if (user) {
-        const notifs = db.getNotifications();
-        const unread = notifs.filter(n => n.userId === user.id && !n.read).length;
+        const notifs = await getNotifications();
+        const unread = notifs.filter(n => !n.read).length;
         setUnreadCount(unread);
+      } else {
+        setUnreadCount(0);
       }
     };
 
     fetchUser();
-    const interval = setInterval(fetchUser, 1500); // Live poll for mock database updates
+    const interval = setInterval(fetchUser, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const toggleRole = () => {
     if (!currentUser) return;
-    
-    const users = db.getUsers();
-    let targetUser: UserType | undefined;
-
-    if (currentUser.role === 'seeker') {
-      // Switch to Priya (Worker)
-      targetUser = users.find(u => u.role === 'worker');
-    } else {
-      // Switch to Harshita (Seeker)
-      targetUser = users.find(u => u.role === 'seeker');
-    }
-
-    if (targetUser) {
-      db.setCurrentUser(targetUser);
-      setCurrentUser(targetUser);
-      setShowDropdown(false);
-      
-      // Redirect based on new role
-      if (targetUser.role === 'worker') {
-        router.push('/worker');
-      } else {
-        router.push('/home');
-      }
-    }
+    setShowDropdown(false);
+    router.push(currentUser.role === 'worker' ? '/home' : '/worker');
   };
 
-  const handleLogout = () => {
-    db.setCurrentUser(null);
+  const handleLogout = async () => {
+    await logout();
     setCurrentUser(null);
     setShowDropdown(false);
     router.push('/');
@@ -144,10 +124,10 @@ export default function Navbar() {
               <button 
                 onClick={toggleRole} 
                 className="hidden sm:flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-100"
-                title="Quick switch between Seeker and Worker view for testing"
+                title="Open the other portal"
               >
                 <RefreshCw size={13} className="animate-spin-slow" />
-                Demo: {currentUser.role === 'seeker' ? 'Seeker Portal' : 'Worker Portal'}
+                {currentUser.role === 'seeker' ? 'Worker Portal' : 'Seeker Portal'}
               </button>
 
               {/* Notifications */}

@@ -18,20 +18,23 @@ const registerSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   password: z.string().min(6),
-  role: z.enum(["worker", "employer"]),
+  role: z.enum(["worker", "employer", "seeker", "admin"]),
   location: z.string().min(2).optional(),
   businessName: z.string().optional()
 });
 
 function sign(user) {
-  return jwt.sign({ userId: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: "7d" });
+  const role = user.role === "seeker" ? "employer" : user.role;
+  return jwt.sign({ userId: user.id, role }, process.env.JWT_SECRET, { expiresIn: "7d" });
 }
 
 async function createProfile(user, body) {
+  if (user.role === "admin") return null;
+
   if (user.role === "worker") {
     return WorkerProfile.create({
       userId: user._id,
-      location: body.location || user.location,
+      location: body.location || user.location || "Indiranagar",
       skills: ["Customer handling", "Table service", "Billing support"],
       availability: [
         { day: "Mon", status: "Available", ranges: ["6 PM - 10 PM"] },
@@ -47,19 +50,20 @@ async function createProfile(user, body) {
 
   return EmployerProfile.create({
     userId: user._id,
-    businessName: body.businessName || `${user.name}'s Business`,
-    location: body.location || user.location
+    businessName: body.businessName || `${user.name}'s Household`,
+    location: body.location || user.location || "Indiranagar"
   });
 }
 
 router.post("/register", async (req, res, next) => {
   try {
     const body = registerSchema.parse(req.body);
+    const normalizedRole = body.role === "seeker" ? "employer" : body.role;
     const existing = await User.findOne({ email: body.email });
     if (existing) return res.status(409).json({ message: "Email is already registered" });
 
     const passwordHash = await bcrypt.hash(body.password, 12);
-    const user = await User.create({ ...body, passwordHash });
+    const user = await User.create({ ...body, role: normalizedRole, passwordHash });
     await createProfile(user, body);
     res.cookie("flexywork_token", sign(user), cookieOptions).status(201).json({ user });
   } catch (error) {

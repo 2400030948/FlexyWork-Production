@@ -7,10 +7,9 @@ import {
   ArrowLeft, Calendar, Clock, MapPin, IndianRupee, 
   ShieldCheck, AlertCircle, Phone, MessageSquare, Play, CheckCircle 
 } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Gig } from '../../types';
-import StatusBadge from '../../components/ui/StatusBadge';
-import { getGigById } from '../../services/gigs';
+import { Gig } from '../../../types';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import { getGigById } from '../../../services/gigs';
 
 export default function BookingDetailPage() {
   const params = useParams();
@@ -205,7 +204,7 @@ export default function BookingDetailPage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-ink">Priya Sharma</p>
-                <p className="text-[10px] text-ink-muted mt-0.5">Home Cleaning Specialist · 4.9★</p>
+                <p className="text-[10px] text-ink-muted mt-0.5">Home Cleaning Specialist · 4.9/5</p>
               </div>
             </div>
             <div className="flex gap-2">

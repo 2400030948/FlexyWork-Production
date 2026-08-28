@@ -6,11 +6,12 @@ import {
   Briefcase, IndianRupee, Star, CheckCircle, ShieldCheck, 
   MapPin, Bell, Radio, AlertCircle, RefreshCw 
 } from 'lucide-react';
-import { db } from '../../mock/data';
 import { Gig, User } from '../../types';
 import GigCard from '../../components/shared/GigCard';
 import EarningsChart from '../../components/charts/EarningsChart';
 import EmptyState from '../../components/ui/EmptyState';
+import { getMe } from '../../services/auth';
+import { getGigs, getMyGigs } from '../../services/gigs';
 
 export default function WorkerDashboard() {
   const router = useRouter();
@@ -19,9 +20,9 @@ export default function WorkerDashboard() {
   const [opportunities, setOpportunities] = useState<Gig[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchWorkerDashboardData = () => {
+  const fetchWorkerDashboardData = async () => {
     setLoading(true);
-    const user = db.getCurrentUser();
+    const user = await getMe();
     setCurrentUser(user);
 
     if (!user) {
@@ -34,17 +35,9 @@ export default function WorkerDashboard() {
       return;
     }
 
-    const gigs = db.getGigs();
-
-    // 1. Opportunities: Gigs with REQUESTED status and no assigned worker yet
-    const opps = gigs.filter(g => g.status === 'REQUESTED' && g.assignedWorkerIds.length === 0);
-    setOpportunities(opps);
-
-    // 2. Active Gigs: Assigned to Priya Sharma
-    const active = gigs.filter(
-      g => g.assignedWorkerIds.includes(user.id) && g.status !== 'COMPLETED' && g.status !== 'DECLINED'
-    );
-    setActiveGigs(active);
+    const [opps, myGigs] = await Promise.all([getGigs(), getMyGigs(user.id, user.role)]);
+    setOpportunities(opps.filter((gig) => gig.status === 'REQUESTED' && gig.assignedWorkerIds.length === 0));
+    setActiveGigs(myGigs.filter((gig) => gig.status !== 'COMPLETED' && gig.status !== 'DECLINED'));
     setLoading(false);
   };
 
@@ -61,7 +54,7 @@ export default function WorkerDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
         <div>
           <h1 className="text-2xl font-extrabold text-ink tracking-tight">
-            Good morning, {currentUser?.name.split(' ')[0] || 'Priya'} 👋
+            Good morning, {currentUser?.name.split(' ')[0] || 'Priya'}
           </h1>
           <p className="text-xs text-ink-muted mt-0.5 font-medium">Vijayawada Collective Member</p>
         </div>
@@ -119,7 +112,7 @@ export default function WorkerDashboard() {
             <span className="text-xxs font-extrabold uppercase tracking-wider">Overall Rating</span>
             <Star size={16} className="fill-amber-400 text-amber-400" />
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">4.9★</p>
+          <p className="text-xl sm:text-2xl font-black text-ink">4.9/5</p>
           <p className="text-[10px] text-ink-subtle font-bold">128 total reviews</p>
         </div>
 

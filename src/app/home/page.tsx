@@ -4,10 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Search, MapPin, Paintbrush, Wrench, Leaf, Users, Calendar, AlertCircle } from 'lucide-react';
-import { db } from '../../mock/data';
 import { WorkerProfile, Gig, User } from '../../types';
 import ProviderCard from '../../components/shared/ProviderCard';
 import GigCard from '../../components/shared/GigCard';
+import { getMe } from '../../services/auth';
+import { getMyGigs } from '../../services/gigs';
+import { getProviders } from '../../services/providers';
 
 export default function SeekerHome() {
   const router = useRouter();
@@ -18,23 +20,24 @@ export default function SeekerHome() {
   const [categoryFilter, setCategoryFilter] = useState('');
 
   useEffect(() => {
-    // Session load
-    const user = db.getCurrentUser();
-    setCurrentUser(user);
+    const loadHomeData = async () => {
+      const user = await getMe();
+      setCurrentUser(user);
 
-    // If user is worker, redirect to worker portal
-    if (user && user.role === 'worker') {
-      router.push('/worker');
-      return;
-    }
+      if (user && user.role === 'worker') {
+        router.push('/worker');
+        return;
+      }
 
-    // Load mock database items
-    setProviders(db.getWorkers());
-    
-    if (user) {
-      const myGigs = db.getGigs().filter(g => g.employerId === user.id);
-      setActiveGigs(myGigs);
-    }
+      const [providersData, gigsData] = await Promise.all([
+        getProviders(),
+        user ? getMyGigs(user.id, user.role) : Promise.resolve([])
+      ]);
+      setProviders(providersData);
+      setActiveGigs(gigsData);
+    };
+
+    loadHomeData().catch(() => router.push('/login'));
   }, [router]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -56,7 +59,7 @@ export default function SeekerHome() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
         <div>
           <h1 className="text-2xl font-extrabold text-ink tracking-tight">
-            Good morning, {currentUser?.name.split(' ')[0] || 'Harshita'} 👋
+            Good morning, {currentUser?.name.split(' ')[0] || 'Harshita'}
           </h1>
           <p className="text-xs text-ink-muted mt-0.5 font-medium">Vijayawada, Andhra Pradesh</p>
         </div>
@@ -130,8 +133,9 @@ export default function SeekerHome() {
                 gig={gig} 
                 viewMode="seeker" 
                 onActionComplete={() => {
-                  const myGigs = db.getGigs().filter(g => g.employerId === currentUser?.id);
-                  setActiveGigs(myGigs);
+                  if (currentUser) {
+                    getMyGigs(currentUser.id, currentUser.role).then(setActiveGigs);
+                  }
                 }}
               />
             ))}

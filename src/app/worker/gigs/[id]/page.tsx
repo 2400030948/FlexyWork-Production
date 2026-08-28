@@ -7,10 +7,9 @@ import {
   ArrowLeft, Calendar, Clock, MapPin, IndianRupee, 
   Play, CheckCircle, Navigation, Radio, CheckSquare, Square 
 } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Gig } from '../../types';
-import { getGigById, recordAttendance } from '../../services/gigs';
-import StatusBadge from '../../components/ui/StatusBadge';
+import { Gig } from '../../../../types';
+import { getGigById, recordAttendance } from '../../../../services/gigs';
+import StatusBadge from '../../../../components/ui/StatusBadge';
 
 export default function WorkerGigDetailPage() {
   const params = useParams();
@@ -156,7 +155,7 @@ export default function WorkerGigDetailPage() {
             )}
             {gig.status === 'COMPLETED' && (
               <span className="w-full inline-flex items-center justify-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-100 rounded-xl px-4 py-2.5 text-xs font-bold">
-                ✓ Payout Disbursed
+                <CheckCircle size={13} /> Payout Disbursed
               </span>
             )}
           </div>

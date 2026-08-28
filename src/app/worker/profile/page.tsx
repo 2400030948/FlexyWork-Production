@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Save, CheckCircle, ShieldCheck, User } from 'lucide-react';
-import { db } from '../../mock/data';
-import { WorkerProfile, AvailabilitySlot } from '../../types';
-import { updateAvailability } from '../../services/providers';
+import { WorkerProfile, AvailabilitySlot } from '../../../types';
+import { getMe } from '../../../services/auth';
+import { getProviderById, updateAvailability, updateWorkerProfile } from '../../../services/providers';
 
 export default function WorkerProfileSettings() {
   const router = useRouter();
@@ -18,21 +18,24 @@ export default function WorkerProfileSettings() {
   const [success, setSuccess] = useState('');
 
   useEffect(() => {
-    const user = db.getCurrentUser();
-    if (!user || user.role !== 'worker') {
-      router.push('/login');
-      return;
-    }
+    const loadProfile = async () => {
+      const user = await getMe();
+      if (!user || user.role !== 'worker') {
+        router.push('/login');
+        return;
+      }
 
-    const workers = db.getWorkers();
-    const wProfile = workers.find(w => w.userId === user.id);
-    if (wProfile) {
-      setProfile(wProfile);
-      setAvailability(wProfile.availability);
-      setName(wProfile.name);
-      setBio(wProfile.bio);
-      setRate(wProfile.hourlyRate);
-    }
+      const wProfile = await getProviderById(user.id);
+      if (wProfile) {
+        setProfile(wProfile);
+        setAvailability(wProfile.availability);
+        setName(wProfile.name);
+        setBio(wProfile.bio);
+        setRate(wProfile.hourlyRate);
+      }
+    };
+
+    loadProfile();
   }, [router]);
 
   const toggleDayStatus = (dayName: string) => {
@@ -58,24 +61,10 @@ export default function WorkerProfileSettings() {
     setLoading(true);
     setSuccess('');
     try {
-      // 1. Update availability using our mock service
       await updateAvailability(profile.userId, availability);
-
-      // 2. Save bio / rate changes locally
-      const workers = db.getWorkers();
-      const idx = workers.findIndex(w => w.userId === profile.userId);
-      if (idx !== -1) {
-        workers[idx] = {
-          ...workers[idx],
-          name,
-          bio,
-          hourlyRate: rate,
-          availability
-        };
-        db.updateWorkers(workers);
-      }
-
-      setSuccess('Profile configuration & availability calendar saved successfully!');
+      const updatedProfile = await updateWorkerProfile({ name, bio, hourlyRate: rate });
+      setProfile({ ...updatedProfile, availability });
+      setSuccess('Profile configuration and availability calendar saved successfully.');
     } catch (err: any) {
       console.error(err);
     } finally {

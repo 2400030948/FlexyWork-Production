@@ -1,7 +1,11 @@
 import express from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { Attendance } from "../models/Attendance.js";
+import { Notification } from "../models/Notification.js";
+import { Payment } from "../models/Payment.js";
 import { Shift } from "../models/Shift.js";
+
+import { WorkerProfile } from "../models/Profile.js";
 
 const router = express.Router();
 
@@ -18,6 +22,7 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
     );
     shift.status = "in_progress";
     await shift.save();
+    await Notification.create({ userId: shift.employerId, message: `${req.user.name} checked in for ${shift.title}` });
     res.json({ attendance });
   } catch (error) {
     next(error);
@@ -32,7 +37,23 @@ router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), async (re
     attendance.status = "completed";
     attendance.durationMinutes = Math.max(1, Math.round((attendance.checkOutAt - attendance.checkInAt) / 60000));
     await attendance.save();
-    await Shift.findByIdAndUpdate(req.params.shiftId, { status: "completed" });
+    const shift = await Shift.findByIdAndUpdate(req.params.shiftId, { status: "completed" }, { returnDocument: "after" });
+    if (shift) {
+      await Payment.findOneAndUpdate(
+        { shiftId: shift._id, workerId: req.user._id },
+        {
+          employerId: shift.employerId,
+          amount: shift.paymentAmount,
+          status: "pending"
+        },
+        { upsert: true, returnDocument: "after" }
+      );
+      await WorkerProfile.findOneAndUpdate(
+        { userId: req.user._id },
+        { $inc: { completedShifts: 1 } }
+      );
+      await Notification.create({ userId: shift.employerId, message: `${req.user.name} completed ${shift.title}` });
+    }
     res.json({ attendance });
   } catch (error) {
     next(error);

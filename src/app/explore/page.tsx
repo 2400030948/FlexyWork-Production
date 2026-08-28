@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useTransition } from 'react';
+import React, { Suspense, useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Search, SlidersHorizontal, ShieldCheck, Star, X, MapPin } from 'lucide-react';
 import { getProviders } from '../../services/providers';
@@ -8,7 +8,7 @@ import { WorkerProfile } from '../../types';
 import ProviderCard from '../../components/shared/ProviderCard';
 import EmptyState from '../../components/ui/EmptyState';
 
-export default function ExplorePage() {
+function ExploreContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -199,7 +199,7 @@ export default function ExplorePage() {
                       : 'border-surface-border bg-white text-ink-muted hover:bg-stone-50'
                   }`}
                 >
-                  {r === 0 ? 'Any' : `${r}★+`}
+                  {r === 0 ? 'Any' : `${r}+`}
                 </button>
               ))}
             </div>
@@ -368,5 +368,13 @@ export default function ExplorePage() {
       )}
 
     </div>
+  );
+}
+
+export default function ExplorePage() {
+  return (
+    <Suspense fallback={<div className="h-64 flex items-center justify-center text-xs font-semibold text-ink-subtle uppercase tracking-wider">Loading providers...</div>}>
+      <ExploreContent />
+    </Suspense>
   );
 }

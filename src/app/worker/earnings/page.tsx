@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { IndianRupee, TrendingUp, Info, HelpCircle, Layers, Calendar, RefreshCw } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Transaction, User } from '../../types';
-import EarningsChart from '../../components/charts/EarningsChart';
+import { Transaction, User } from '../../../types';
+import EarningsChart from '../../../components/charts/EarningsChart';
+import { getMe } from '../../../services/auth';
+import { getPayments } from '../../../services/payments';
 
 export default function WorkerEarningsPage() {
   const router = useRouter();
@@ -13,9 +14,9 @@ export default function WorkerEarningsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchEarningsData = () => {
+  const fetchEarningsData = async () => {
     setLoading(true);
-    const user = db.getCurrentUser();
+    const user = await getMe();
     setCurrentUser(user);
 
     if (!user) {
@@ -23,19 +24,18 @@ export default function WorkerEarningsPage() {
       return;
     }
 
-    const txs = db.getTransactions().filter(t => t.userId === user.id);
-    setTransactions(txs);
+    setTransactions(await getPayments());
     setLoading(false);
   };
 
   useEffect(() => {
     fetchEarningsData();
-    const interval = setInterval(fetchEarningsData, 2000); // Poll for check-out state updates
+    const interval = setInterval(fetchEarningsData, 5000);
     return () => clearInterval(interval);
   }, [router]);
 
-  const grossEarnings = 18450;
-  const platformFees = 1845;
+  const grossEarnings = transactions.reduce((sum, transaction) => sum + transaction.amount, 0);
+  const platformFees = Math.round(grossEarnings * 0.1);
   const netEarnings = grossEarnings - platformFees;
 
   return (

@@ -9,6 +9,24 @@ const availabilitySchema = new mongoose.Schema(
   { _id: false }
 );
 
+const dateOverrideSchema = new mongoose.Schema(
+  {
+    date: { type: String, required: true },
+    status: { type: String, enum: ["Available", "Unavailable", "Limited"], default: "Unavailable" },
+    ranges: [{ type: String }]
+  },
+  { _id: false }
+);
+
+const unavailablePeriodSchema = new mongoose.Schema(
+  {
+    startDate: { type: String, required: true },
+    endDate: { type: String, required: true },
+    reason: String
+  },
+  { _id: false }
+);
+
 const workerProfileSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
@@ -17,9 +35,12 @@ const workerProfileSchema = new mongoose.Schema(
     bio: String,
     expectedHourlyWage: { type: Number, default: 125 },
     availability: [availabilitySchema],
+    dateOverrides: [dateOverrideSchema],
+    unavailablePeriods: [unavailablePeriodSchema],
     rating: { type: Number, default: 4.8 },
     reliabilityScore: { type: Number, default: 94 },
     completedShifts: { type: Number, default: 0 },
+    isVerified: { type: Boolean, default: true },
     location: { type: String, default: "Indiranagar" },
     latitude: Number,
     longitude: Number

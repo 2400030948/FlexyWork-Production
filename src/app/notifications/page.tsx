@@ -3,9 +3,10 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, ShieldAlert, Sparkles, Calendar, Users, Briefcase } from 'lucide-react';
-import { db } from '../../mock/data';
 import { Notification, User } from '../../types';
 import EmptyState from '../../components/ui/EmptyState';
+import { getMe } from '../../services/auth';
+import { getNotifications, markNotificationRead } from '../../services/notifications';
 
 export default function NotificationsPage() {
   const router = useRouter();
@@ -13,28 +14,26 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const fetchNotifications = () => {
-      const user = db.getCurrentUser();
+    const fetchNotifications = async () => {
+      const user = await getMe();
       setCurrentUser(user);
       if (!user) {
         router.push('/login');
         return;
       }
-      const data = db.getNotifications().filter(n => n.userId === user.id);
-      setNotifications(data);
+      setNotifications(await getNotifications());
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 2000);
+    const interval = setInterval(fetchNotifications, 5000);
     return () => clearInterval(interval);
   }, [router]);
 
   const markAllRead = () => {
-    if (!currentUser) return;
-    const allNotifs = db.getNotifications();
-    const updated = allNotifs.map(n => n.userId === currentUser.id ? { ...n, read: true } : n);
-    db.updateNotifications(updated);
-    setNotifications(updated.filter(n => n.userId === currentUser.id));
+    const unread = notifications.filter((notification) => !notification.read);
+    Promise.all(unread.map((notification) => markNotificationRead(notification.id))).then(() => {
+      setNotifications((items) => items.map((item) => ({ ...item, read: true })));
+    });
   };
 
   const getNotifIcon = (type: 'booking' | 'gig' | 'system' | 'community') => {

@@ -6,9 +6,9 @@ import {
   Users, Handshake, ShieldCheck, IndianRupee, Star, 
   Layers, CheckCircle, RefreshCw, AlertCircle 
 } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Community, CooperativeGig, User } from '../../types';
-import { getCommunities, getCoopGigs, joinCoopGig } from '../../services/communities';
+import { Community, CooperativeGig, User } from '../../../types';
+import { getCommunities, getCoopGigs, joinCoopGig } from '../../../services/communities';
+import { getMe } from '../../../services/auth';
 
 export default function WorkerCommunitiesPage() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function WorkerCommunitiesPage() {
   const fetchCommunitiesData = async () => {
     setLoading(true);
     setError('');
-    const user = db.getCurrentUser();
+    const user = await getMe();
     setCurrentUser(user);
 
     if (!user) {
@@ -45,7 +45,7 @@ export default function WorkerCommunitiesPage() {
 
   useEffect(() => {
     fetchCommunitiesData();
-    const interval = setInterval(fetchCommunitiesData, 2000); // Poll for live feed/coop updates
+    const interval = setInterval(fetchCommunitiesData, 5000);
     return () => clearInterval(interval);
   }, [router]);
 
@@ -53,7 +53,7 @@ export default function WorkerCommunitiesPage() {
     setSuccess('');
     setError('');
     try {
-      const updated = await joinCoopGig(gigId, skill);
+      await joinCoopGig(gigId, skill);
       setSuccess(`Successfully joined cooperative gig as "${skill}"! Check earnings trends.`);
       await fetchCommunitiesData();
     } catch (err: any) {
@@ -140,7 +140,6 @@ export default function WorkerCommunitiesPage() {
                         <h4 className="text-[10px] uppercase font-bold text-ink-subtle tracking-wider">Required Squad Members</h4>
                         <div className="space-y-2">
                           {cg.skillsRequired.map(s => {
-                            const isPriyaMatch = s.skill === 'Deep Cleaning' && currentUser?.id === 'user_priya';
                             const alreadyJoined = cg.joinedWorkers.some(w => w.id === currentUser?.id);
                             
                             return (
@@ -167,7 +166,7 @@ export default function WorkerCommunitiesPage() {
                                   </div>
 
                                   {/* Join CTA if matches cleaner */}
-                                  {s.filled < s.count && isPriyaMatch && !alreadyJoined && (
+                                  {s.filled < s.count && !alreadyJoined && (
                                     <button
                                       onClick={() => handleJoinCoop(cg.id, s.skill)}
                                       className="rounded-lg bg-brand-500 hover:bg-brand-600 text-white px-3.5 py-1.5 text-[10px] font-bold shadow-sm transition-all"
@@ -221,7 +220,7 @@ export default function WorkerCommunitiesPage() {
                     <div>
                       <h4 className="text-xs font-bold text-ink leading-tight">{c.name}</h4>
                       <p className="text-[10px] text-ink-subtle font-semibold mt-0.5">
-                        {c.memberCount} members · {c.rating}★ rating
+                        {c.memberCount} members · {c.rating}/5 rating
                       </p>
                     </div>
                   </div>

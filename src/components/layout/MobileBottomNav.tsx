@@ -4,19 +4,19 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Home, Search, Calendar, Users, User, LayoutDashboard, Briefcase, IndianRupee } from 'lucide-react';
-import { db } from '../../mock/data';
 import { User as UserType } from '../../types';
+import { getMe } from '../../services/auth';
 
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
 
   useEffect(() => {
-    const fetchUser = () => {
-      setCurrentUser(db.getCurrentUser());
+    const fetchUser = async () => {
+      setCurrentUser(await getMe());
     };
     fetchUser();
-    const interval = setInterval(fetchUser, 1500);
+    const interval = setInterval(fetchUser, 5000);
     return () => clearInterval(interval);
   }, []);
 

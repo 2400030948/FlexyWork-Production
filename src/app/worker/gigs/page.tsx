@@ -3,11 +3,11 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Briefcase, Calendar, RefreshCw } from 'lucide-react';
-import { db } from '../../mock/data';
-import { Gig, User } from '../../types';
-import { getMyGigs } from '../../services/gigs';
-import GigCard from '../../components/shared/GigCard';
-import EmptyState from '../../components/ui/EmptyState';
+import { Gig, User } from '../../../types';
+import { getMyGigs } from '../../../services/gigs';
+import GigCard from '../../../components/shared/GigCard';
+import EmptyState from '../../../components/ui/EmptyState';
+import { getMe } from '../../../services/auth';
 
 export default function WorkerGigsPage() {
   const router = useRouter();
@@ -18,7 +18,7 @@ export default function WorkerGigsPage() {
 
   const fetchWorkerGigs = async () => {
     setLoading(true);
-    const user = db.getCurrentUser();
+    const user = await getMe();
     setCurrentUser(user);
 
     if (!user) {
