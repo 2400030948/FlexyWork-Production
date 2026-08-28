@@ -25,7 +25,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      const user = await login(email, password, role);
+      const user = await login(email, password);
       if (user.role === 'worker') {
         router.push('/worker');
       } else if (user.role === 'admin') {
@@ -166,6 +166,15 @@ export default function LoginPage() {
             )}
           </button>
         </form>
+
+        <div className="border-t border-stone-100 pt-4 text-center">
+          <Link
+            href="/admin/login"
+            className="text-xs font-bold text-stone-500 transition-colors hover:text-ink"
+          >
+            Admin Login
+          </Link>
+        </div>
 
       </div>
     </div>
