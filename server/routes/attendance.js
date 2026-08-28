@@ -12,7 +12,11 @@ const router = express.Router();
 router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req, res, next) => {
   try {
     const shift = await Shift.findById(req.params.shiftId);
-    if (!shift || !shift.assignedWorkerIds.some((id) => id.equals(req.user._id))) {
+    if (!shift) return res.status(404).json({ message: "Shift not found" });
+    const isAssigned =
+      shift.assignedWorkerIds.some((id) => id.toString() === req.user._id.toString()) ||
+      Boolean(await Application.findOne({ shiftId: shift._id, workerId: req.user._id, status: "accepted" }));
+    if (!isAssigned) {
       return res.status(403).json({ message: "You are not assigned to this shift" });
     }
     const attendance = await Attendance.findOneAndUpdate(

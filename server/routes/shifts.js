@@ -278,8 +278,7 @@ router.post("/:id/accept", requireAuth, requireRole("worker"), async (req, res, 
     );
 
     if (shift.assignedWorkerIds.length >= shift.workersRequired) {
-      shift.status = "filled";
-      await shift.save();
+      shift = await Shift.findByIdAndUpdate(shift._id, { status: "filled" }, { returnDocument: "after" });
     }
 
     await Attendance.updateOne(
