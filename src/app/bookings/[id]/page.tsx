@@ -200,11 +200,11 @@ export default function BookingDetailPage() {
           <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 bg-brand-100 text-brand-700 font-extrabold flex items-center justify-center rounded-xl text-sm border border-brand-200">
-                PS
+                {gig.employerName?.charAt(0) || 'W'}
               </div>
               <div>
-                <p className="text-xs font-bold text-ink">Priya Sharma</p>
-                <p className="text-[10px] text-ink-muted mt-0.5">Home Cleaning Specialist · 4.9/5</p>
+                <p className="text-xs font-bold text-ink">{gig.employerName || 'Assigned Worker'}</p>
+                <p className="text-[10px] text-ink-muted mt-0.5">{gig.category} · {gig.assignedWorkerIds.length} worker{gig.assignedWorkerIds.length > 1 ? 's' : ''} assigned</p>
               </div>
             </div>
             <div className="flex gap-2">

@@ -24,7 +24,25 @@ export async function getGigById(id: string): Promise<Gig | null> {
   }
 }
 
-export async function createGig(gigData: Omit<Gig, 'id' | 'filledCount' | 'assignedWorkerIds' | 'status' | 'employerId' | 'employerName' | 'time'>): Promise<Gig> {
+export type CreateGigInput = {
+  title: string;
+  description: string;
+  category: string;
+  requiredSkills?: string[];
+  workersRequired?: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  time?: string;
+  duration?: string;
+  paymentType?: 'fixed' | 'hourly';
+  paymentAmount: number;
+  location: string;
+  urgency?: 'normal' | 'urgent';
+  maximumDistance?: number;
+};
+
+export async function createGig(gigData: CreateGigInput): Promise<Gig> {
   const data = await apiCall<{ shift: Gig }>('/api/shifts', {
     method: 'POST',
     body: JSON.stringify(gigData)

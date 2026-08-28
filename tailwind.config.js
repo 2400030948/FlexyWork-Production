@@ -1,7 +1,9 @@
 /** @type {import('tailwindcss').Config} */
-module.exports = {
+export default {
   content: [
-    "./src/**/*.{js,ts,jsx,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
@@ -33,6 +35,13 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
+      },
+      fontSize: {
+        xxs: ['0.65rem', { lineHeight: '0.9rem' }],
+      },
+      animation: {
+        'spin-slow': 'spin 4s linear infinite',
+        'bounce-slow': 'bounce 2.5s infinite',
       },
     },
   },
