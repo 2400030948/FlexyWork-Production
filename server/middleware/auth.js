@@ -41,9 +41,9 @@ export function requireRole(allowedRoles) {
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   return (req, res, next) => {
     if (!req.user) return res.status(401).json({ message: "Unauthorized" });
-    const userRole = req.user.role === "seeker" ? "employer" : req.user.role;
+    const userRole = req.user.role;
     const normalizedAllowed = roles.map((r) => (r === "seeker" ? "employer" : r));
-    if (!normalizedAllowed.includes(userRole) && !normalizedAllowed.includes(req.user.role)) {
+    if (!normalizedAllowed.includes(userRole)) {
       return res.status(403).json({ message: "Forbidden" });
     }
     next();

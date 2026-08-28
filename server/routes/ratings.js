@@ -44,7 +44,7 @@ router.post("/:shiftId", requireAuth, async (req, res, next) => {
     if (shift.status !== "completed") return res.status(409).json({ message: "Complete the shift before rating" });
 
     const isWorker = req.user.role === "worker";
-    const isEmployer = (req.user.role === "employer" || req.user.role === "seeker") && shift.employerId.equals(req.user._id);
+    const isEmployer = req.user.role === "employer" && shift.employerId.equals(req.user._id);
 
     const isAssignedWorker = isWorker && (
       shift.assignedWorkerIds.some((id) => id.equals(req.user._id)) ||

@@ -6,16 +6,12 @@ import { User } from "../models/User.js";
 
 const router = express.Router();
 
-function uiRole(role) {
-  return role === "employer" ? "seeker" : role;
-}
-
 function serializeUser(user) {
   return {
     id: user._id.toString(),
     name: user.name,
     email: user.email,
-    role: uiRole(user.role),
+    role: user.role,
     location: user.location,
     avatarUrl: user.profileImage,
     createdAt: user.createdAt?.toISOString()

@@ -7,8 +7,8 @@ const userSchema = new mongoose.Schema(
     passwordHash: { type: String, required: false, select: false },
     googleId: { type: String, default: null },
     authProvider: { type: String, enum: ["local", "google"], default: "local" },
-    role: { type: String, enum: ["worker", "employer", "seeker", "admin"], required: true },
-    roles: [{ type: String, enum: ["worker", "employer", "seeker", "admin"] }],
+    role: { type: String, enum: ["worker", "employer", "admin"], required: true },
+    roles: [{ type: String, enum: ["worker", "employer", "admin"] }],
     profileImage: String,
     phone: String,
     location: { type: String, default: "Indiranagar" }

@@ -30,7 +30,7 @@ router.get("/", requireAuth, async (req, res, next) => {
   }
 });
 
-router.post("/:shiftId/mark-paid", requireAuth, requireRole(["employer", "seeker", "admin"]), async (req, res, next) => {
+router.post("/:shiftId/mark-paid", requireAuth, requireRole(["employer", "admin"]), async (req, res, next) => {
   try {
     const shift = await Shift.findById(req.params.shiftId);
     if (!shift) return res.status(404).json({ message: "Shift not found" });

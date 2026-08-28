@@ -118,7 +118,7 @@ router.post("/", optionalAuth, async (req, res, next) => {
     const body = shiftSchema.parse(req.body);
     let employerId = req.user?._id;
     if (!employerId) {
-      const defaultEmployer = await User.findOne({ role: { $in: ["employer", "seeker"] } }) || await User.findOne({});
+      const defaultEmployer = await User.findOne({ role: "employer" }) || await User.findOne({});
       employerId = defaultEmployer?._id;
     }
     const shift = await Shift.create({ ...body, employerId, status: "published" });
@@ -186,7 +186,7 @@ router.post("/parse", (req, res, next) => {
 
 router.get("/mine", requireAuth, async (req, res, next) => {
   try {
-    if (req.user.role === "employer" || req.user.role === "seeker") {
+    if (req.user.role === "employer") {
       const shifts = await Shift.find({ employerId: req.user._id }).sort({ createdAt: -1 });
       return res.json({ shifts: await Promise.all(shifts.map((shift) => serializeShift(shift, null, req.user._id))) });
     }
