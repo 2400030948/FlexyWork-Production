@@ -5,8 +5,8 @@ import Script from 'next/script';
 
 declare global {
   interface Window {
-    google: any;
-    googleTranslateElementInit: () => void;
+    google?: any;
+    googleTranslateElementInit?: () => void;
   }
 }
 
