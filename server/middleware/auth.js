@@ -23,6 +23,20 @@ export async function requireAuth(req, res, next) {
   }
 }
 
+export async function optionalAuth(req, res, next) {
+  try {
+    const token = getToken(req);
+    if (token) {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(payload.userId);
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch {}
+  next();
+}
+
 export function requireRole(allowedRoles) {
   const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
   return (req, res, next) => {

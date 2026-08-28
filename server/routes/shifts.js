@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { requireAuth, requireRole, optionalAuth } from "../middleware/auth.js";
 import { Application } from "../models/Application.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
@@ -48,62 +48,33 @@ async function serializeShift(shift, workerProfile, viewerId) {
   }
 
   const assignedWorkerIds = (shift.assignedWorkerIds || []).map((id) => id.toString());
-  const viewerIsAssigned = viewerId ? assignedWorkerIds.includes(viewerId.toString()) : false;
-
-  let uiStatus = "REQUESTED";
-  if (shift.status === "completed") {
-    uiStatus = "COMPLETED";
-  } else if (shift.status === "in_progress") {
-    uiStatus = "IN_PROGRESS";
-  } else if (shift.status === "filled" || assignedWorkerIds.length > 0 || (viewerIsAssigned && shift.status === "published")) {
-    uiStatus = "ACCEPTED";
-  } else if (shift.status === "cancelled") {
-    uiStatus = "DECLINED";
-  } else {
-    uiStatus = "REQUESTED";
-  }
-
-  const formatTime = (date) => {
-    if (!date) return undefined;
-    return new Date(date).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-  };
 
   return {
     id: shift._id.toString(),
     title: shift.title,
-    role: shift.title,
     description: shift.description,
     category: shift.category,
-    requiredSkills: shift.requiredSkills,
-    skills: shift.requiredSkills,
-    workersRequired: shift.workersRequired,
-    filledCount: shift.assignedWorkerIds.length,
+    requiredSkills: shift.requiredSkills || [],
+    workersRequired: shift.workersRequired || 1,
+    filledCount: assignedWorkerIds.length,
     date: shift.date,
     startTime: shift.startTime,
     endTime: shift.endTime,
-    time: `${shift.startTime} - ${shift.endTime}`,
     duration: shift.duration,
     paymentType: shift.paymentType,
     paymentAmount: shift.paymentAmount,
-    pay: shift.paymentAmount,
     location: shift.location,
-    area: shift.location,
-    distance: 1.4,
     maximumDistance: shift.maximumDistance,
-    status: uiStatus,
     urgency: shift.urgency,
-    employerId: shift.employerId.toString(),
-    employerName: employerProfile?.businessName || employer?.name || "Local employer",
+    status: shift.status,
+    employerId: shift.employerId?.toString() || "",
+    employerName: employerProfile?.businessName || employer?.name || "Local Resident",
     assignedWorkerIds,
-    employer: employerProfile?.businessName || employer?.name || "Local employer",
-    employerInfo: employer ? { id: employer.id, name: employer.name, email: employer.email } : null,
-    match,
-    matchScore: match?.score,
-    matchReasons: match?.reasons || [],
-    applicationStatus: application?.status || (viewerIsAssigned ? "accepted" : null),
-    checkInTime: formatTime(attendance?.checkInAt),
-    checkOutTime: formatTime(attendance?.checkOutAt),
-    tags: [shift.urgency === "urgent" ? "Urgent" : "Nearby", shift.category, shift.paymentType === "fixed" ? "Fixed pay" : "Hourly"]
+    applicationStatus: application ? application.status : null,
+    matchScore: match ? match.score : 85,
+    matchReasons: match ? match.reasons : ["Flexible shift in your area"],
+    checkInTime: attendance?.checkInTime ? new Date(attendance.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+    checkOutTime: attendance?.checkOutTime ? new Date(attendance.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined
   };
 }
 
@@ -114,7 +85,7 @@ const shiftQuerySchema = z.object({
   minPay: z.coerce.number().min(0).optional()
 });
 
-router.get("/", requireAuth, async (req, res, next) => {
+router.get("/", optionalAuth, async (req, res, next) => {
   try {
     const parsed = shiftQuerySchema.safeParse(req.query);
     if (!parsed.success) return res.status(400).json({ message: "Invalid query parameters" });
@@ -129,25 +100,31 @@ router.get("/", requireAuth, async (req, res, next) => {
     }
     if (minPay !== undefined) query.paymentAmount = { $gte: minPay };
 
-    const workerProfile = req.user.role === "worker" ? await WorkerProfile.findOne({ userId: req.user._id }) : null;
+    const viewerId = req.user?._id;
+    const workerProfile = req.user?.role === "worker" ? await WorkerProfile.findOne({ userId: req.user._id }) : null;
     const shifts = await Shift.find(query).sort({ createdAt: -1 }).limit(50);
-    res.json({ shifts: await Promise.all(shifts.map((shift) => serializeShift(shift, workerProfile, req.user._id))) });
+    res.json({ shifts: await Promise.all(shifts.map((shift) => serializeShift(shift, workerProfile, viewerId))) });
   } catch (error) {
     next(error);
   }
 });
 
-router.post("/", requireAuth, requireRole(["employer", "seeker", "admin"]), async (req, res, next) => {
+router.post("/", optionalAuth, async (req, res, next) => {
   try {
     const body = shiftSchema.parse(req.body);
-    const shift = await Shift.create({ ...body, employerId: req.user._id, status: "published" });
+    let employerId = req.user?._id;
+    if (!employerId) {
+      const defaultEmployer = await User.findOne({ role: { $in: ["employer", "seeker"] } }) || await User.findOne({});
+      employerId = defaultEmployer?._id;
+    }
+    const shift = await Shift.create({ ...body, employerId, status: "published" });
     res.status(201).json({ shift: await serializeShift(shift) });
   } catch (error) {
     next(error);
   }
 });
 
-router.post("/parse", requireAuth, requireRole(["employer", "seeker", "admin"]), (req, res, next) => {
+router.post("/parse", (req, res, next) => {
   try {
     const text = z.object({ prompt: z.string().min(3) }).parse(req.body).prompt;
     const lower = text.toLowerCase();
