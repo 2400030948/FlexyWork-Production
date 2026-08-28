@@ -137,7 +137,7 @@ function ShiftCard({ shift, selected, onClick }) {
 function Landing({ setRole }) {
   return (
     <section className="hero" id="home">
-      <img src="/flexywork-hero.png" alt="Local worker accepting a flexible shift at a neighborhood cafe" />
+      <img src="/hero-section.png" alt="Local worker accepting a flexible shift at a neighborhood cafe" />
       <div className="hero-overlay" />
       <nav className="nav">
         <a className="brand" href="#home"><BriefcaseBusiness size={22} />FlexyWork</a>
