@@ -193,7 +193,7 @@ export default function Navbar() {
                       <p className="text-sm font-semibold text-ink">{currentUser.name}</p>
                       <p className="text-xs text-ink-muted truncate">{currentUser.email}</p>
                       <span className="inline-block text-[10px] font-extrabold uppercase bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full mt-1">
-                        {currentUser.role === 'worker' ? 'Worker Account' : 'Employer Account'}
+                        {currentUser.role === 'worker' ? 'Worker Account' : currentUser.role === 'admin' ? 'Admin Account' : 'Employer Account'}
                       </span>
                     </div>
 
