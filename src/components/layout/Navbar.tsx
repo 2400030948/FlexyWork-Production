@@ -5,8 +5,9 @@ import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
 import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield, Plus } from 'lucide-react';
 import { User as UserType } from '../../types';
-import { getMe, logout } from '../../services/auth';
+import { getMe, logout, switchRole } from '../../services/auth';
 import { getNotifications } from '../../services/notifications';
+import LanguageSelector from './LanguageSelector';
 
 export default function Navbar() {
   const router = useRouter();
@@ -38,10 +39,17 @@ export default function Navbar() {
     };
   }, [pathname]);
 
-  const toggleRole = () => {
+  const toggleRole = async () => {
     if (!currentUser) return;
     setShowDropdown(false);
-    router.push(currentUser.role === 'worker' ? '/home' : '/worker');
+    const targetRole = currentUser.role === 'worker' ? 'seeker' : 'worker';
+    try {
+      const updated = await switchRole(targetRole);
+      setCurrentUser(updated);
+    } catch {
+      // ignore
+    }
+    router.push(targetRole === 'worker' ? '/worker' : '/home');
   };
 
   const handleLogout = async () => {
@@ -272,6 +280,9 @@ export default function Navbar() {
               </div>
             </>
           )}
+
+          {/* Dynamic Language Switcher (English / Marathi / Hindi / Telugu) */}
+          <LanguageSelector />
 
           {!currentUser && (
             <div className="flex items-center gap-3">

@@ -47,8 +47,33 @@ app.use((error, _req, res, _next) => {
   res.status(status).json({ message: status === 500 ? "Something went wrong" : error.message });
 });
 
+import bcrypt from "bcryptjs";
+import { User } from "./models/User.js";
+
+async function ensureAdminUser() {
+  const adminEmail = process.env.ADMIN_EMAIL;
+  const adminPassword = process.env.ADMIN_PASSWORD;
+  if (!adminEmail || !adminPassword) return;
+
+  const passwordHash = await bcrypt.hash(adminPassword, 12);
+  await User.findOneAndUpdate(
+    { email: adminEmail.toLowerCase().trim() },
+    {
+      name: "FlexyWork Admin",
+      email: adminEmail.toLowerCase().trim(),
+      role: "admin",
+      roles: ["admin"],
+      passwordHash,
+      location: "Indiranagar"
+    },
+    { upsert: true, returnDocument: "after" }
+  );
+  console.log(`Admin user synchronized from .env: ${adminEmail}`);
+}
+
 connectDb()
-  .then(() => {
+  .then(async () => {
+    await ensureAdminUser();
     app.listen(port, () => {
       console.log(`FlexyWork API listening on http://127.0.0.1:${port}`);
     });

@@ -4,8 +4,11 @@ const userSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    passwordHash: { type: String, required: true, select: false },
+    passwordHash: { type: String, required: false, select: false },
+    googleId: { type: String, default: null },
+    authProvider: { type: String, enum: ["local", "google"], default: "local" },
     role: { type: String, enum: ["worker", "employer", "seeker", "admin"], required: true },
+    roles: [{ type: String, enum: ["worker", "employer", "seeker", "admin"] }],
     profileImage: String,
     phone: String,
     location: { type: String, default: "Indiranagar" }

@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import Navbar from '../components/layout/Navbar';
 import MobileBottomNav from '../components/layout/MobileBottomNav';
+import GoogleTranslator from '../components/layout/GoogleTranslator';
 
 export const metadata: Metadata = {
   title: 'FLEXYWORK | Work flex. Earn more. Grow together.',
@@ -17,6 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="h-full">
       <body className="flex flex-col min-h-screen bg-surface-soft font-sans antialiased text-ink">
+        {/* Dynamic Multi-Language Translator */}
+        <GoogleTranslator />
+
         {/* Responsive Desktop Header */}
         <Navbar />
 
