@@ -56,16 +56,27 @@ export default function SeekerHome() {
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-10">
       
       {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-3xl gap-4 shadow-sm">
         <div>
           <h1 className="text-2xl font-extrabold text-ink tracking-tight">
-            Good morning, {currentUser?.name.split(' ')[0] || 'Harshita'}
+            Good morning, {currentUser?.name.split(' ')[0] || 'Employer'}
           </h1>
-          <p className="text-xs text-ink-muted mt-0.5 font-medium">Vijayawada, Andhra Pradesh</p>
+          <p className="text-xs text-ink-muted mt-0.5 font-medium">{currentUser?.location || 'Indiranagar'}, India · Employer Portal</p>
         </div>
-        <div className="inline-flex items-center gap-1 bg-brand-50 border border-brand-100 text-brand-700 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm shrink-0">
-          <MapPin size={14} className="text-brand-500" />
-          Location Check-In Active
+        <div className="flex flex-wrap items-center gap-2.5">
+          <Link
+            href="/post-gig"
+            className="inline-flex items-center gap-1.5 bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 rounded-xl text-xs font-extrabold shadow-sm transition-all"
+          >
+            + Post a Gig
+          </Link>
+          <Link
+            href="/posted-gigs"
+            className="inline-flex items-center gap-1.5 bg-brand-50 border border-brand-100 text-brand-700 hover:bg-brand-100 px-3.5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all"
+          >
+            <Calendar size={14} className="text-brand-500" />
+            My Posted Gigs
+          </Link>
         </div>
       </div>
 
@@ -120,10 +131,10 @@ export default function SeekerHome() {
           <div className="flex justify-between items-center border-b border-surface-border pb-2">
             <h2 className="text-lg font-extrabold text-ink flex items-center gap-1.5">
               <Calendar size={18} className="text-brand-500" />
-              Your Active Bookings
+              Your Posted Gigs & Active Shifts
             </h2>
-            <Link href="/bookings" className="text-xs font-bold text-brand-600 hover:underline">
-              View all
+            <Link href="/posted-gigs" className="text-xs font-bold text-brand-600 hover:underline">
+              View all ({activeGigs.length})
             </Link>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

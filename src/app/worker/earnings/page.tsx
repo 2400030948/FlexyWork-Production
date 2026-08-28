@@ -30,7 +30,7 @@ export default function WorkerEarningsPage() {
 
   useEffect(() => {
     fetchEarningsData();
-    const interval = setInterval(fetchEarningsData, 5000);
+    const interval = setInterval(fetchEarningsData, 30000);
     return () => clearInterval(interval);
   }, [router]);
 

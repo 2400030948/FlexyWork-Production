@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield } from 'lucide-react';
+import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield, Plus } from 'lucide-react';
 import { User as UserType } from '../../types';
 import { getMe, logout } from '../../services/auth';
 import { getNotifications } from '../../services/notifications';
@@ -69,16 +69,26 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           {currentUser && !isAdminPortal && (
             <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-ink-muted">
-              {currentUser.role === 'seeker' ? (
+              {currentUser.role !== 'worker' ? (
                 <>
                   <Link href="/home" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/home' ? 'text-ink font-semibold' : ''}`}>
                     Dashboard
                   </Link>
-                  <Link href="/explore" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/explore' ? 'text-ink font-semibold' : ''}`}>
-                    Find Services
+                  <Link 
+                    href="/post-gig" 
+                    className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1 ${
+                      pathname === '/post-gig' 
+                        ? 'bg-brand-500 text-white shadow-xs' 
+                        : 'bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200'
+                    }`}
+                  >
+                    + Post a Gig
                   </Link>
-                  <Link href="/bookings" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/bookings') ? 'text-ink font-semibold' : ''}`}>
-                    Bookings
+                  <Link href="/posted-gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/posted-gigs' || pathname.startsWith('/bookings') ? 'text-ink font-semibold' : ''}`}>
+                    My Posted Gigs
+                  </Link>
+                  <Link href="/explore" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/explore' ? 'text-ink font-semibold' : ''}`}>
+                    Find Workers
                   </Link>
                   <Link href="/community" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/community') ? 'text-ink font-semibold' : ''}`}>
                     Collectives
@@ -89,8 +99,8 @@ export default function Navbar() {
                   <Link href="/worker" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker' ? 'text-ink font-semibold' : ''}`}>
                     Command Center
                   </Link>
-                  <Link href="/worker/gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/gigs' ? 'text-ink font-semibold' : ''}`}>
-                    My Gigs
+                  <Link href="/worker/gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/worker/gigs') ? 'text-ink font-semibold' : ''}`}>
+                    Find & My Gigs
                   </Link>
                   <Link href="/worker/earnings" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/earnings' ? 'text-ink font-semibold' : ''}`}>
                     Earnings
@@ -120,14 +130,14 @@ export default function Navbar() {
           
           {currentUser && (
             <>
-              {/* Quick Role Switcher Banner Tag (For judges) */}
+              {/* Quick Role Switcher Banner Tag */}
               <button 
                 onClick={toggleRole} 
                 className="hidden sm:flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-100"
                 title="Open the other portal"
               >
                 <RefreshCw size={13} className="animate-spin-slow" />
-                {currentUser.role === 'seeker' ? 'Worker Portal' : 'Seeker Portal'}
+                {currentUser.role === 'worker' ? 'Employer View' : 'Worker View'}
               </button>
 
               {/* Notifications */}
@@ -170,6 +180,9 @@ export default function Navbar() {
                     <div className="px-4 py-2.5 border-b border-surface-border">
                       <p className="text-sm font-semibold text-ink">{currentUser.name}</p>
                       <p className="text-xs text-ink-muted truncate">{currentUser.email}</p>
+                      <span className="inline-block text-[10px] font-extrabold uppercase bg-brand-50 text-brand-700 px-2 py-0.5 rounded-full mt-1">
+                        {currentUser.role === 'worker' ? 'Worker Account' : 'Employer Account'}
+                      </span>
                     </div>
 
                     <div className="py-1">
@@ -178,27 +191,55 @@ export default function Navbar() {
                         className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
                       >
                         <RefreshCw size={15} />
-                        Switch to {currentUser.role === 'seeker' ? 'Worker View' : 'Seeker View'}
+                        Switch to {currentUser.role === 'worker' ? 'Employer View' : 'Worker View'}
                       </button>
 
-                      {currentUser.role === 'seeker' ? (
-                        <Link
-                          href="/profile"
-                          onClick={() => setShowDropdown(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
-                        >
-                          <User size={15} />
-                          My Profile
-                        </Link>
+                      {currentUser.role !== 'worker' ? (
+                        <>
+                          <Link
+                            href="/post-gig"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-brand-700 font-semibold hover:bg-brand-50 transition-colors"
+                          >
+                            <Plus size={15} />
+                            Post a Gig
+                          </Link>
+                          <Link
+                            href="/posted-gigs"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                          >
+                            <Briefcase size={15} />
+                            My Posted Gigs
+                          </Link>
+                          <Link
+                            href="/profile"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                          >
+                            <User size={15} />
+                            Employer Profile
+                          </Link>
+                        </>
                       ) : (
-                        <Link
-                          href="/worker/profile"
-                          onClick={() => setShowDropdown(false)}
-                          className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
-                        >
-                          <User size={15} />
-                          Worker Profile
-                        </Link>
+                        <>
+                          <Link
+                            href="/worker/gigs"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-brand-700 font-semibold hover:bg-brand-50 transition-colors"
+                          >
+                            <Briefcase size={15} />
+                            Find & My Gigs
+                          </Link>
+                          <Link
+                            href="/worker/profile"
+                            onClick={() => setShowDropdown(false)}
+                            className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
+                          >
+                            <User size={15} />
+                            Worker Profile
+                          </Link>
+                        </>
                       )}
 
                       <Link

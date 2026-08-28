@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { 
   Briefcase, IndianRupee, Star, CheckCircle, ShieldCheck, 
   MapPin, Bell, Radio, AlertCircle, RefreshCw 
@@ -36,14 +37,18 @@ export default function WorkerDashboard() {
     }
 
     const [opps, myGigs] = await Promise.all([getGigs(), getMyGigs(user.id, user.role)]);
-    setOpportunities(opps.filter((gig) => gig.status === 'REQUESTED' && gig.assignedWorkerIds.length === 0));
+    setOpportunities(opps.filter((gig) => 
+      gig.status === 'REQUESTED' && 
+      !gig.assignedWorkerIds?.includes(user.id) && 
+      (gig.assignedWorkerIds?.length || 0) < (gig.workersRequired || 1)
+    ));
     setActiveGigs(myGigs.filter((gig) => gig.status !== 'COMPLETED' && gig.status !== 'DECLINED'));
     setLoading(false);
   };
 
   useEffect(() => {
     fetchWorkerDashboardData();
-    const interval = setInterval(fetchWorkerDashboardData, 2000); // Polling for demo updates
+    const interval = setInterval(fetchWorkerDashboardData, 30000);
     return () => clearInterval(interval);
   }, [router]);
 
@@ -149,7 +154,12 @@ export default function WorkerDashboard() {
 
           {/* New Opportunities matches list */}
           <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-ink border-b border-surface-border pb-2">New Opportunities Around You</h2>
+            <div className="flex justify-between items-center border-b border-surface-border pb-2">
+              <h2 className="text-lg font-extrabold text-ink">New Opportunities Around You</h2>
+              <Link href="/worker/gigs?tab=available" className="text-xs font-bold text-brand-600 hover:underline">
+                Browse all ({opportunities.length}) →
+              </Link>
+            </div>
             {loading ? (
               <div className="h-32 bg-white border rounded-2xl animate-pulse" />
             ) : opportunities.length === 0 ? (

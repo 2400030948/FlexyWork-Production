@@ -24,7 +24,7 @@ export async function getGigById(id: string): Promise<Gig | null> {
   }
 }
 
-export async function createGig(gigData: Omit<Gig, 'id' | 'filledCount' | 'assignedWorkerIds' | 'status' | 'employerId' | 'employerName'>): Promise<Gig> {
+export async function createGig(gigData: Omit<Gig, 'id' | 'filledCount' | 'assignedWorkerIds' | 'status' | 'employerId' | 'employerName' | 'time'>): Promise<Gig> {
   const data = await apiCall<{ shift: Gig }>('/api/shifts', {
     method: 'POST',
     body: JSON.stringify(gigData)

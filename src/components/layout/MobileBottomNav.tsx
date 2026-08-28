@@ -24,25 +24,25 @@ export default function MobileBottomNav() {
 
   const isWorker = currentUser.role === 'worker';
 
-  // Seeker items
-  const seekerTabs = [
+  // Employer / Seeker items
+  const employerTabs = [
     { label: 'Home', href: '/home', icon: Home },
-    { label: 'Explore', href: '/explore', icon: Search },
-    { label: 'Bookings', href: '/bookings', icon: Calendar },
-    { label: 'Collectives', href: '/community', icon: Users },
+    { label: 'Post Gig', href: '/post-gig', icon: Briefcase },
+    { label: 'My Gigs', href: '/posted-gigs', icon: Calendar },
+    { label: 'Workers', href: '/explore', icon: Search },
     { label: 'Profile', href: '/profile', icon: User },
   ];
 
   // Worker items
   const workerTabs = [
     { label: 'Dashboard', href: '/worker', icon: LayoutDashboard },
-    { label: 'Gigs', href: '/worker/gigs', icon: Briefcase },
+    { label: 'Find Gigs', href: '/worker/gigs', icon: Briefcase },
     { label: 'Earnings', href: '/worker/earnings', icon: IndianRupee },
     { label: 'Community', href: '/worker/communities', icon: Users },
     { label: 'Profile', href: '/worker/profile', icon: User },
   ];
 
-  const activeTabs = isWorker ? workerTabs : seekerTabs;
+  const activeTabs = isWorker ? workerTabs : employerTabs;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border bg-white/95 backdrop-blur-md pb-safe md:hidden">

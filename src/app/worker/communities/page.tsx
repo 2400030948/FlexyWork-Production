@@ -45,7 +45,7 @@ export default function WorkerCommunitiesPage() {
 
   useEffect(() => {
     fetchCommunitiesData();
-    const interval = setInterval(fetchCommunitiesData, 5000);
+    const interval = setInterval(fetchCommunitiesData, 30000);
     return () => clearInterval(interval);
   }, [router]);
 

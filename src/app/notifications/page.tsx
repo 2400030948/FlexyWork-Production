@@ -25,7 +25,7 @@ export default function NotificationsPage() {
     };
 
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 5000);
+    const interval = setInterval(fetchNotifications, 30000);
     return () => clearInterval(interval);
   }, [router]);
 

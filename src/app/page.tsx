@@ -49,17 +49,17 @@ export default function LandingPage() {
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
               <Link 
-                href="/explore" 
+                href="/post-gig" 
                 className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-6 py-3.5 font-bold shadow-md shadow-brand-500/10 transition-all text-sm group"
               >
-                Find a Service
+                Post a Gig as Employer
                 <ArrowRight size={16} className="transition-transform group-hover:translate-x-0.5" />
               </Link>
               <Link 
                 href="/signup" 
                 className="inline-flex items-center justify-center rounded-xl bg-white hover:bg-stone-50 text-ink px-6 py-3.5 font-bold border border-surface-border transition-all text-sm"
               >
-                Start Earning
+                Find Gigs & Earn
               </Link>
             </div>
           </div>

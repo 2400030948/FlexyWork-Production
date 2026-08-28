@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Calendar, RefreshCw, Star, MapPin, Search } from 'lucide-react';
 import { Gig, User } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -34,7 +35,7 @@ export default function BookingsPage() {
 
   useEffect(() => {
     fetchBookings();
-    const interval = setInterval(fetchBookings, 5000);
+    const interval = setInterval(fetchBookings, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -54,18 +55,32 @@ export default function BookingsPage() {
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
       
       {/* Title Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-ink tracking-tight">Your Service Bookings</h1>
-          <p className="text-xs text-ink-muted mt-0.5">Track matching status, active sessions, and payment histories.</p>
+          <h1 className="text-2xl font-extrabold text-ink tracking-tight">Your Service Bookings & Posted Gigs</h1>
+          <p className="text-xs text-ink-muted mt-0.5">Track matching status, applicant reviews, and active sessions.</p>
         </div>
-        <button
-          onClick={fetchBookings}
-          className="p-2 text-ink-muted hover:text-ink bg-white border border-surface-border rounded-xl transition-all shadow-sm"
-          title="Force Refresh Data"
-        >
-          <RefreshCw size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchBookings}
+            className="p-2 text-ink-muted hover:text-ink bg-white border border-surface-border rounded-xl transition-all shadow-sm"
+            title="Force Refresh Data"
+          >
+            <RefreshCw size={16} />
+          </button>
+          <Link
+            href="/post-gig"
+            className="rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-sm flex items-center gap-1"
+          >
+            + Post a Gig
+          </Link>
+          <Link
+            href="/posted-gigs"
+            className="rounded-xl border border-surface-border bg-white hover:bg-stone-50 text-ink px-3.5 py-2 text-xs font-bold transition-all shadow-sm"
+          >
+            Manage Applicants
+          </Link>
+        </div>
       </div>
 
       {/* Tabs Row */}
