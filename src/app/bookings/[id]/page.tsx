@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { Gig, ShiftApplication, User } from '../../../types';
 import StatusBadge from '../../../components/ui/StatusBadge';
-import { getGigById, getShiftApplications, updateApplicationStatus } from '../../../services/gigs';
+import { getGigById, getShiftApplications, updateApplicationStatus, recordAttendance } from '../../../services/gigs';
 import { getMe } from '../../../services/auth';
 
 export default function BookingDetailPage() {
