@@ -46,7 +46,6 @@ export interface EmployerProfile {
   avatarUrl?: string;
 }
 
-export type GigStatus = 'REQUESTED' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'DECLINED';
 export type GigStatus = 'REQUESTED' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'DECLINED' | 'published' | 'filled' | 'in_progress' | 'completed' | 'cancelled';
 
 export interface Gig {
@@ -70,7 +69,6 @@ export interface Gig {
   employerId: string;
   employerName: string;
   assignedWorkerIds: string[];
-  applicationStatus?: 'pending' | 'accepted' | 'declined' | null;
   applicationStatus?: 'pending' | 'accepted' | 'declined' | 'rejected' | null;
   matchScore?: number; // Match rating percentage (e.g. 95)
   matchReasons?: string[];

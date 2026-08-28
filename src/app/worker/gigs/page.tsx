@@ -151,12 +151,12 @@ function WorkerGigsContent() {
 
   const confirmedGigs = myGigs.filter(g => {
     const isAssigned = g.assignedWorkerIds?.includes(currentUser?.id || '');
-    const isCompleted = g.status === 'COMPLETED' || g.status === 'completed' || g.status === 'DECLINED' || g.status === 'cancelled';
+    const isCompleted = g.status === 'COMPLETED' || g.status === 'DECLINED';
     return (isAssigned || g.applicationStatus === 'accepted') && !isCompleted;
   });
 
   const completedGigs = myGigs.filter(g => {
-    return g.status === 'COMPLETED' || g.status === 'completed' || g.status === 'DECLINED' || g.status === 'cancelled';
+    return g.status === 'COMPLETED' || g.status === 'DECLINED';
   });
 
   return (

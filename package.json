@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"npm run server\" \"next dev --port 3000\"",
+    "start": "concurrently \"npm run server\" \"next start --port 3000\"",
     "next": "next dev --port 3000",
     "next:build": "next build",
     "next:start": "next start --port 3000",
