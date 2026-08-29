@@ -3,9 +3,9 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, usePathname } from 'next/navigation';
-import { Briefcase, Bell, User, LogOut, RefreshCw, Layers, Shield, Plus } from 'lucide-react';
+import { Briefcase, Bell, User, LogOut, Shield, Plus } from 'lucide-react';
 import { User as UserType } from '../../types';
-import { getMe, logout, switchRole } from '../../services/auth';
+import { getMe, logout } from '../../services/auth';
 import { getNotifications } from '../../services/notifications';
 import LanguageSelector from './LanguageSelector';
 
@@ -38,19 +38,6 @@ export default function Navbar() {
       clearInterval(interval);
     };
   }, [pathname]);
-
-  const toggleRole = async () => {
-    if (!currentUser) return;
-    setShowDropdown(false);
-    const targetRole = currentUser.role === 'worker' ? 'seeker' : 'worker';
-    try {
-      const updated = await switchRole(targetRole);
-      setCurrentUser(updated);
-    } catch {
-      // ignore
-    }
-    router.push(targetRole === 'worker' ? '/worker' : '/home');
-  };
 
   const handleLogout = async () => {
     await logout();
@@ -142,16 +129,6 @@ export default function Navbar() {
           
           {currentUser && (
             <>
-              {/* Quick Role Switcher Banner Tag */}
-              <button 
-                onClick={toggleRole} 
-                className="hidden sm:flex items-center gap-1.5 rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-600 transition-colors hover:bg-brand-100"
-                title="Open the other portal"
-              >
-                <RefreshCw size={13} className="animate-spin-slow" />
-                {currentUser.role === 'worker' ? 'Employer View' : 'Worker View'}
-              </button>
-
               {/* Notifications */}
               <Link 
                 href="/notifications" 
@@ -198,14 +175,6 @@ export default function Navbar() {
                     </div>
 
                     <div className="py-1">
-                      <button
-                        onClick={toggleRole}
-                        className="flex w-full items-center gap-2 px-4 py-2 text-left text-sm text-ink-muted hover:bg-surface-card hover:text-ink transition-colors"
-                      >
-                        <RefreshCw size={15} />
-                        Switch to {currentUser.role === 'worker' ? 'Employer View' : 'Worker View'}
-                      </button>
-
                       {currentUser.role !== 'worker' ? (
                         <>
                           <Link
