@@ -4,6 +4,7 @@ import { requireAuth, requireRole, optionalAuth, requireVerifiedWorker } from ".
 import { Application } from "../models/Application.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
+import { Payment } from "../models/Payment.js";
 import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
 import { Shift } from "../models/Shift.js";
 import { User } from "../models/User.js";
@@ -63,6 +64,18 @@ async function serializeShift(shift, workerProfile, viewerId) {
   const num = Math.abs(hash.split('').reduce((acc, c) => acc * 31 + c.charCodeAt(0), 7)) % 9000 + 1000;
   const checkInOtp = shift.checkInOtp || String(num);
 
+  let paymentStatus = "none";
+  if (attendance?.checkInAt) {
+    const paymentQuery = { shiftId: shift._id };
+    if (viewerId && workerProfile) {
+      paymentQuery.workerId = viewerId;
+    }
+    const payment = await Payment.findOne(paymentQuery).sort({ updatedAt: -1 });
+    if (payment?.status === "marked_paid") paymentStatus = "paid";
+    else if (payment?.status === "failed") paymentStatus = "failed";
+    else paymentStatus = "awaiting";
+  }
+
   return {
     id: shift._id.toString(),
     title: shift.title,
@@ -90,7 +103,8 @@ async function serializeShift(shift, workerProfile, viewerId) {
     time: `${shift.startTime} - ${shift.endTime}`,
     checkInTime: attendance?.checkInAt ? new Date(attendance.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
     checkOutTime: attendance?.checkOutAt ? new Date(attendance.checkOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-    checkInOtp
+    checkInOtp,
+    paymentStatus
   };
 }
 

@@ -119,6 +119,7 @@ export interface Gig {
   checkInTime?: string;
   checkOutTime?: string;
   checkInOtp?: string;
+  paymentStatus?: 'none' | 'awaiting' | 'paid' | 'failed';
 }
 
 export interface ShiftApplication {

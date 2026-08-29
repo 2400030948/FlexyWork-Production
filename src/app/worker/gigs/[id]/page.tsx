@@ -46,6 +46,8 @@ export default function WorkerGigDetailPage() {
   useEffect(() => {
     if (gigId) {
       fetchGig();
+      const interval = setInterval(fetchGig, 15000);
+      return () => clearInterval(interval);
     }
   }, [gigId]);
 
@@ -224,7 +226,7 @@ export default function WorkerGigDetailPage() {
           </div>
 
           {/* On-Duty Checklist (Shown when assigned) */}
-          {isAssigned && !gig.checkOutTime && (
+          {isAssigned && gig.paymentStatus !== 'paid' && (
             <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-3">
               <h3 className="text-xs font-bold text-ink uppercase tracking-wider">
                 Shift Checklist & Procedures
@@ -374,19 +376,20 @@ export default function WorkerGigDetailPage() {
                         </p>
                       )}
                     </div>
-                  ) : !gig.checkOutTime ? (
-                    <button
-                      onClick={() => handleAction('check-out')}
-                      disabled={actionLoading}
-                      className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-xs font-bold transition-all shadow-2xs btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
-                    >
-                      <CheckCircle size={14} />
-                      <span>Finish Shift & Check Out</span>
-                    </button>
-                  ) : (
+                  ) : gig.paymentStatus === 'paid' ? (
                     <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg p-3 text-xs font-bold flex items-center gap-1.5">
                       <CheckCircle2 size={15} className="text-emerald-600" />
-                      <span>Shift Completed</span>
+                      <span>Shift Completed & Paid</span>
+                    </div>
+                  ) : (
+                    <div className="bg-amber-50 text-amber-900 border border-amber-200 rounded-lg p-3 text-xs font-medium space-y-1">
+                      <p className="font-bold flex items-center gap-1.5">
+                        <Hourglass size={14} className="text-amber-600" />
+                        On Duty — Awaiting Employer Payment
+                      </p>
+                      <p className="text-[11px] text-amber-800 leading-relaxed">
+                        You checked in successfully. The employer will complete payment via Razorpay to finish this shift.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -423,19 +426,15 @@ export default function WorkerGigDetailPage() {
           <span className="text-xs font-bold text-brand-800 bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200">
             Awaiting OTP Check In
           </span>
-        ) : isAssigned && !gig.checkOutTime ? (
-          <button
-            onClick={() => handleAction('check-out')}
-            disabled={actionLoading}
-            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-bold shadow-2xs btn-press"
-          >
-            Check Out
-          </button>
-        ) : (
-          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
-            Completed ✓
+        ) : isAssigned && gig.checkInTime && gig.paymentStatus !== 'paid' ? (
+          <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+            Awaiting Payment
           </span>
-        )}
+        ) : isAssigned && gig.paymentStatus === 'paid' ? (
+          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+            Completed & Paid ✓
+          </span>
+        ) : null}
       </div>
 
     </div>

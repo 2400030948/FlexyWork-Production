@@ -166,8 +166,8 @@ export default function BookingDetailPage() {
     }
 
     if (stepName === 'completed') {
-      if (['completed'].includes(current) || gig.checkOutTime) return 'done';
-      if (current === 'in_progress' || gig.checkInTime) return 'current';
+      if (paymentStatus === 'paid' || gig.paymentStatus === 'paid') return 'done';
+      if (gig.checkInTime) return 'current';
       return 'pending';
     }
     return 'pending';
@@ -294,25 +294,20 @@ export default function BookingDetailPage() {
                 <p className={`text-xs font-bold ${
                   getStepStatus('completed') === 'done' ? 'text-ink' : getStepStatus('completed') === 'current' ? 'text-brand-600 font-extrabold' : 'text-ink-subtle'
                 }`}>
-                  4. Completed & Verified
+                  4. Payment & Completion
                 </p>
-                {gig.checkOutTime ? (
-                  <p className="text-[10px] text-ink-muted mt-0.5">
-                    Completed at <strong className="text-ink">{gig.checkOutTime}</strong>.
-                    {paymentStatus === 'paid'
-                      ? ' Payout transferred to worker wallet.'
-                      : ' Awaiting employer payment via Razorpay.'}
+                {paymentStatus === 'paid' || gig.paymentStatus === 'paid' ? (
+                  <p className="text-[10px] text-emerald-700 font-semibold mt-0.5">
+                    ✓ Payment received via Razorpay. Shift is fully complete and worker has been paid.
+                  </p>
+                ) : gig.checkInTime ? (
+                  <p className="text-[10px] text-amber-700 font-semibold mt-0.5">
+                    Worker checked in. Complete Razorpay payment below to finish this shift.
                   </p>
                 ) : (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
-                    <p className="text-[10px] text-ink-subtle">
-                      {gig.checkInTime
-                        ? paymentStatus === 'paid'
-                          ? 'Worker is on duty. Payment secured in escrow.'
-                          : 'Worker checked in. Complete payment via Razorpay to secure the shift payout.'
-                        : 'Waiting for on-site arrival and check-in.'}
-                    </p>
-                  </div>
+                  <p className="text-[10px] text-ink-subtle mt-0.5">
+                    Waiting for worker OTP check-in before payment can be collected.
+                  </p>
                 )}
               </div>
             </div>

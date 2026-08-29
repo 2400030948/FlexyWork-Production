@@ -4,6 +4,7 @@ import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
 import { Payment } from "../models/Payment.js";
 import { Shift } from "../models/Shift.js";
+import { WorkerProfile } from "../models/Profile.js";
 import {
   createRazorpayOrder,
   fetchRazorpayPayment,
@@ -13,6 +14,39 @@ import {
 } from "../services/razorpay.js";
 
 const router = express.Router();
+
+async function completeShiftAfterPayment(shift) {
+  shift.status = "completed";
+  await shift.save();
+
+  const attendances = await Attendance.find({
+    shiftId: shift._id,
+    checkInAt: { $exists: true, $ne: null }
+  });
+  const now = new Date();
+
+  await Promise.all(
+    attendances.map(async (attendance) => {
+      if (!attendance.checkOutAt) {
+        attendance.checkOutAt = now;
+        attendance.status = "completed";
+        attendance.durationMinutes = Math.max(
+          1,
+          Math.round((attendance.checkOutAt - attendance.checkInAt) / 60000)
+        );
+        await attendance.save();
+        await WorkerProfile.findOneAndUpdate(
+          { userId: attendance.workerId },
+          { $inc: { completedShifts: 1 } }
+        );
+        await Notification.create({
+          userId: attendance.workerId,
+          message: `Your shift "${shift.title}" is complete. Payment has been received.`
+        });
+      }
+    })
+  );
+}
 
 function serializePayment(payment) {
   const shift = payment.shiftId;
@@ -260,6 +294,8 @@ router.post("/verify", requireAuth, requireRole(["employer", "admin"]), async (r
       })
     );
 
+    await completeShiftAfterPayment(shift);
+
     const refreshed = await Payment.find({ shiftId: shift._id }).populate("shiftId");
     res.json({
       verified: true,
@@ -275,7 +311,14 @@ router.post("/:shiftId/mark-paid", requireAuth, requireRole(["employer", "admin"
     const shift = await Shift.findById(req.params.shiftId);
     if (!shift) return res.status(404).json({ message: "Shift not found" });
     if (!shift.employerId.equals(req.user._id) && req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });
-    if (shift.status !== "completed") return res.status(409).json({ message: "Complete the shift before marking payment paid" });
+
+    const hasCheckedIn = await Attendance.exists({
+      shiftId: shift._id,
+      checkInAt: { $exists: true, $ne: null }
+    });
+    if (!hasCheckedIn) {
+      return res.status(409).json({ message: "Worker must check in with the arrival OTP before payment" });
+    }
 
     const workerIds = await resolveShiftWorkers(shift);
     if (!workerIds.length) {
@@ -300,6 +343,8 @@ router.post("/:shiftId/mark-paid", requireAuth, requireRole(["employer", "admin"
         return serializePayment(payment);
       })
     );
+
+    await completeShiftAfterPayment(shift);
 
     res.json({ payments });
   } catch (error) {

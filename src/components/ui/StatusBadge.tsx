@@ -33,7 +33,7 @@ export default function StatusBadge({ status, className = '' }: StatusBadgeProps
       break;
     case 'COMPLETED':
       styles = 'bg-emerald-100 text-emerald-900 border-emerald-300';
-      label = 'Work Completed';
+      label = 'Completed & Paid';
       break;
     case 'DECLINED':
     case 'CANCELLED':

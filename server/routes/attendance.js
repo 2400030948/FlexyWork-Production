@@ -2,7 +2,6 @@ import express from "express";
 import { requireAuth, requireRole } from "../middleware/auth.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
-import { Payment } from "../models/Payment.js";
 import { Shift } from "../models/Shift.js";
 
 import { Application } from "../models/Application.js";
@@ -70,41 +69,13 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
 /**
  * POST /api/attendance/:shiftId/check-out
  *
- * Worker checks out of a shift. Same authorization model as check-in —
- * once a worker is on a shift, they should be able to finish it without
- * being blocked by pending certificate reviews. The check-in guard above
- * already proves the worker belongs to the shift; here we only verify
- * they actually checked in before checking out.
+ * Workers cannot self-complete shifts. The gig is marked complete only
+ * after the employer pays via Razorpay (see payments verify route).
  */
-router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), async (req, res, next) => {
-  try {
-    const attendance = await Attendance.findOne({ shiftId: req.params.shiftId, workerId: req.user._id });
-    if (!attendance?.checkInAt) return res.status(409).json({ message: "Check in first" });
-    attendance.checkOutAt = new Date();
-    attendance.status = "completed";
-    attendance.durationMinutes = Math.max(1, Math.round((attendance.checkOutAt - attendance.checkInAt) / 60000));
-    await attendance.save();
-    const shift = await Shift.findByIdAndUpdate(req.params.shiftId, { status: "completed" }, { returnDocument: "after" });
-    if (shift) {
-      await Payment.findOneAndUpdate(
-        { shiftId: shift._id, workerId: req.user._id },
-        {
-          employerId: shift.employerId,
-          amount: shift.paymentAmount,
-          status: "pending"
-        },
-        { upsert: true, returnDocument: "after" }
-      );
-      await WorkerProfile.findOneAndUpdate(
-        { userId: req.user._id },
-        { $inc: { completedShifts: 1 } }
-      );
-      await Notification.create({ userId: shift.employerId, message: `${req.user.name} completed ${shift.title}` });
-    }
-    res.json({ attendance });
-  } catch (error) {
-    next(error);
-  }
+router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), async (req, res) => {
+  res.status(403).json({
+    message: "Shift completion is handled automatically after the employer completes Razorpay payment."
+  });
 });
 
 export default router;

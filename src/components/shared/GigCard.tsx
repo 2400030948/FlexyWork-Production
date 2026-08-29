@@ -207,17 +207,12 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
                   Check In →
                 </Link>
               )}
-              {gig.status === 'IN_PROGRESS' && (
-                <button
-                  onClick={handleCheckOut}
-                  disabled={loading || !verified}
-                  title={!verified ? lockedReason : ''}
-                  className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-2xs disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Checking out...' : 'Check Out'}
-                </button>
+              {gig.status === 'IN_PROGRESS' && gig.paymentStatus !== 'paid' && (
+                <span className="text-xs font-semibold text-amber-800 bg-amber-50 px-2.5 py-1.5 rounded-lg border border-amber-200/60">
+                  Awaiting employer payment
+                </span>
               )}
-              {gig.status === 'COMPLETED' && (
+              {(gig.status === 'COMPLETED' || gig.paymentStatus === 'paid') && (
                 <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-emerald-200/60 flex items-center gap-1">
                   <CheckCircle size={13} /> Completed
                 </span>
