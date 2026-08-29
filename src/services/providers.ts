@@ -1,29 +1,35 @@
 import { WorkerProfile, AvailabilitySlot, Certification, WorkExperience, WorkerVerificationStatusResponse } from '../types';
 import { apiCall } from './api';
 
-export async function getProviders(filters?: {
+export interface ProviderSearchFilters {
   search?: string;
   category?: string;
-  maxDistance?: number;
-  verified?: boolean;
+  /** Optional seeker latitude in degrees. */
+  lat?: number | null;
+  /** Optional seeker longitude in degrees. */
+  lng?: number | null;
+  /** Optional radius bucket in kilometres. */
+  radius?: number | null;
   minRating?: number;
-}): Promise<WorkerProfile[]> {
+}
+
+export async function getProviders(filters?: ProviderSearchFilters): Promise<WorkerProfile[]> {
   const params = new URLSearchParams();
   if (filters?.search) params.set('search', filters.search);
   if (filters?.category) params.set('category', filters.category);
   if (filters?.minRating) params.set('minRating', String(filters.minRating));
+  if (filters?.lat !== undefined && filters?.lat !== null && Number.isFinite(filters.lat)) {
+    params.set('lat', String(filters.lat));
+  }
+  if (filters?.lng !== undefined && filters?.lng !== null && Number.isFinite(filters.lng)) {
+    params.set('lng', String(filters.lng));
+  }
+  if (filters?.radius && Number.isFinite(filters.radius)) {
+    params.set('radius', String(filters.radius));
+  }
 
   const data = await apiCall<{ workers: WorkerProfile[] }>(`/api/workers${params.size ? `?${params}` : ''}`);
-  let workers = data.workers;
-
-  if (filters?.maxDistance !== undefined) {
-    workers = workers.filter((worker) => (worker.distance || 0) <= filters.maxDistance!);
-  }
-  if (filters?.verified) {
-    workers = workers.filter((worker) => worker.isVerified);
-  }
-
-  return workers;
+  return data.workers || [];
 }
 
 export async function getMyWorkerProfile(): Promise<WorkerProfile | null> {
@@ -35,9 +41,18 @@ export async function getMyWorkerProfile(): Promise<WorkerProfile | null> {
   }
 }
 
-export async function getProviderById(id: string): Promise<WorkerProfile | null> {
+export async function getProviderById(
+  id: string,
+  seekerCoords?: { lat: number; lng: number } | null
+): Promise<WorkerProfile | null> {
   try {
-    const data = await apiCall<{ worker: WorkerProfile }>(`/api/workers/${id}`);
+    const params = new URLSearchParams();
+    if (seekerCoords && Number.isFinite(seekerCoords.lat) && Number.isFinite(seekerCoords.lng)) {
+      params.set('lat', String(seekerCoords.lat));
+      params.set('lng', String(seekerCoords.lng));
+    }
+    const qs = params.size ? `?${params.toString()}` : '';
+    const data = await apiCall<{ worker: WorkerProfile }>(`/api/workers/${id}${qs}`);
     return data.worker;
   } catch {
     return null;
@@ -58,6 +73,8 @@ export async function updateWorkerProfile(profile: {
   hourlyRate?: number;
   location?: string;
   skills?: string[];
+  latitude?: number;
+  longitude?: number;
 }): Promise<WorkerProfile> {
   const data = await apiCall<{ worker: WorkerProfile }>('/api/workers/me', {
     method: 'PUT',

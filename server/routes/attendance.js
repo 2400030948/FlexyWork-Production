@@ -1,5 +1,5 @@
 import express from "express";
-import { requireAuth, requireRole, requireVerifiedWorker } from "../middleware/auth.js";
+import { requireAuth, requireRole } from "../middleware/auth.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
 import { Payment } from "../models/Payment.js";
@@ -10,10 +10,30 @@ import { WorkerProfile } from "../models/Profile.js";
 
 const router = express.Router();
 
-router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
+/**
+ * POST /api/attendance/:shiftId/check-in
+ *
+ * Worker checks in to a shift using the employer-provided OTP.
+ *
+ * Authorization model (intentionally strict, in this order):
+ *   1. requireAuth      — must be a logged-in user (401 if no/invalid token).
+ *   2. requireRole      — must have the "worker" role (403 "Forbidden" if not).
+ *   3. In-handler guard — must be assigned to this shift, OR have an
+ *                         accepted application for it.
+ *   4. OTP check        — provided OTP must match the shift's checkInOtp.
+ *
+ * NOTE: We intentionally do NOT require admin-verified certificates here.
+ * The certificate gate is enforced when the worker applies to / accepts a
+ * shift. Once the worker is already on a shift, they must be able to
+ * perform routine check-in / check-out without being blocked by a
+ * pending certificate review — that would lock them out of work they
+ * were legitimately assigned to.
+ */
+router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req, res, next) => {
   try {
     const shift = await Shift.findById(req.params.shiftId);
     if (!shift) return res.status(404).json({ message: "Shift not found" });
+
     const isAssigned =
       shift.assignedWorkerIds.some((id) => id.toString() === req.user._id.toString()) ||
       Boolean(await Application.findOne({ shiftId: shift._id, workerId: req.user._id, status: "accepted" }));
@@ -27,7 +47,7 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), requireVer
 
     const providedOtp = req.body?.otp ? String(req.body.otp).trim() : null;
     if (providedOtp && providedOtp !== expectedOtp) {
-      return res.status(400).json({ message: `Incorrect Arrival OTP code. Please ask the employer for the 4-digit verification code.` });
+      return res.status(400).json({ message: "Incorrect Arrival OTP code. Please ask the employer for the 4-digit verification code." });
     }
 
     const attendance = await Attendance.findOneAndUpdate(
@@ -44,7 +64,16 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), requireVer
   }
 });
 
-router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
+/**
+ * POST /api/attendance/:shiftId/check-out
+ *
+ * Worker checks out of a shift. Same authorization model as check-in —
+ * once a worker is on a shift, they should be able to finish it without
+ * being blocked by pending certificate reviews. The check-in guard above
+ * already proves the worker belongs to the shift; here we only verify
+ * they actually checked in before checking out.
+ */
+router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), async (req, res, next) => {
   try {
     const attendance = await Attendance.findOne({ shiftId: req.params.shiftId, workerId: req.user._id });
     if (!attendance?.checkInAt) return res.status(409).json({ message: "Check in first" });

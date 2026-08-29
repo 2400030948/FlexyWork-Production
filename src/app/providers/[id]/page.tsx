@@ -13,6 +13,7 @@ import AvailabilityBadge from '../../../components/ui/AvailabilityBadge';
 import LocationBadge from '../../../components/ui/LocationBadge';
 import PublicCertificates from '../../../components/worker/PublicCertificates';
 import PublicExperience from '../../../components/worker/PublicExperience';
+import { loadStoredSeekerLocation } from '../../../components/shared/LocationControl';
 
 export default function ProviderProfilePage() {
   const params = useParams();
@@ -26,7 +27,15 @@ export default function ProviderProfilePage() {
     const fetchWorker = async () => {
       setLoading(true);
       try {
-        const data = await getProviderById(providerId);
+        // If the seeker previously granted location on the explore page,
+        // pass it through so the API can return a real distance. This
+        // never reaches the server unless the seeker explicitly opted in.
+        const seeker = loadStoredSeekerLocation();
+        const coords =
+          seeker.coords && Number.isFinite(seeker.coords.latitude) && Number.isFinite(seeker.coords.longitude)
+            ? { lat: seeker.coords.latitude, lng: seeker.coords.longitude }
+            : null;
+        const data = await getProviderById(providerId, coords);
         setProvider(data);
       } catch (e) {
         console.error(e);

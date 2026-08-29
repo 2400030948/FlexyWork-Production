@@ -60,7 +60,12 @@ export default function ProviderCard({ provider }: ProviderCardProps) {
           </div>
           <div className="flex items-center gap-1 text-xxs text-ink-subtle">
             <MapPin size={11} className="text-stone-400" />
-            <span>{provider.location || 'Indiranagar'} · {provider.distance || '1.5'} km</span>
+            <span>
+              {provider.location || 'Indiranagar'}
+              {typeof provider.distance === 'number' && Number.isFinite(provider.distance)
+                ? ` · ${provider.distance} km`
+                : ''}
+            </span>
           </div>
         </div>
 

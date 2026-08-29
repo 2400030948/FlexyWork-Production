@@ -76,13 +76,17 @@ const workerProfileSchema = new mongoose.Schema(
     completedShifts: { type: Number, default: 0 },
     isVerified: { type: Boolean, default: true },
     location: { type: String, default: "Indiranagar" },
-    latitude: Number,
-    longitude: Number,
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
+    locationUpdatedAt: { type: Date, default: null },
     certifications: [certificationSchema],
     workExperiences: [experienceSchema]
   },
   { timestamps: true }
 );
+
+// Compound geo index used by the worker-search bounding-box pre-filter
+workerProfileSchema.index({ latitude: 1, longitude: 1 });
 
 const employerProfileSchema = new mongoose.Schema(
   {

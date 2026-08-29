@@ -9,6 +9,7 @@ import { getProviderById, updateAvailability, updateWorkerProfile } from '../../
 import CertificateSection from '../../../components/worker/CertificateSection';
 import ExperienceSection from '../../../components/worker/ExperienceSection';
 import WorkerVerificationBanner from '../../../components/worker/WorkerVerificationBanner';
+import WorkerLocationSection from '../../../components/worker/WorkerLocationSection';
 
 export default function WorkerProfileSettings() {
   const router = useRouter();
@@ -265,6 +266,19 @@ export default function WorkerProfileSettings() {
             </div>
           </div>
         </div>
+
+        {/* SECTION 2b: SERVICE LOCATION */}
+        <WorkerLocationSection
+          profile={profile}
+          onUpdated={(next) => {
+            setProfile((prev) =>
+              prev
+                ? { ...prev, location: next.location, latitude: next.latitude, longitude: next.longitude }
+                : prev
+            );
+            setSuccess('Service location updated.');
+          }}
+        />
 
         {/* Submit Button */}
         <div className="flex justify-end pt-2">

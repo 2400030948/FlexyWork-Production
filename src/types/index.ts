@@ -54,7 +54,8 @@ export interface WorkerProfile {
   skills: string[];
   bio: string;
   location: string;
-  distance?: number; // In kilometers (calculated relative to viewer)
+  distance?: number | null; // In kilometres (calculated relative to viewer)
+  hasCoordinates?: boolean;
   rating: number;
   completedGigsCount: number;
   reliabilityScore: number; // Percentage (e.g. 98)
@@ -69,6 +70,9 @@ export interface WorkerProfile {
   avatarUrl?: string;
   certifications?: Certification[];
   workExperiences?: WorkExperience[];
+  /** Internal — used by the worker location edit form only. Never rendered publicly. */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface WorkerVerificationStatusResponse {
@@ -205,5 +209,8 @@ export interface Transaction {
   amount: number;
   type: 'earnings' | 'coop_payout' | 'platform_fee';
   description: string;
-  status: 'completed' | 'pending';
+  status: 'completed' | 'pending' | 'failed' | 'cancelled';
+  gateway?: 'razorpay' | 'manual' | string;
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
 }

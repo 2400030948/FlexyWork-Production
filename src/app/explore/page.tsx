@@ -2,11 +2,20 @@
 
 import React, { Suspense, useEffect, useState, useTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Search, SlidersHorizontal, ShieldCheck, Star, X, MapPin } from 'lucide-react';
+import { Search, SlidersHorizontal, ShieldCheck, Star, X, MapPin, Compass } from 'lucide-react';
 import { getProviders } from '../../services/providers';
 import { WorkerProfile } from '../../types';
 import ProviderCard from '../../components/shared/ProviderCard';
 import EmptyState from '../../components/ui/EmptyState';
+import LocationControl, {
+  DEFAULT_RADIUS_KM,
+  EMPTY_SEEKER_LOCATION,
+  loadStoredSeekerLocation,
+  persistSeekerLocation,
+  type RadiusOption,
+  type SeekerLocationState
+} from '../../components/shared/LocationControl';
+import { updateMyLocation } from '../../services/auth';
 
 function ExploreContent() {
   const router = useRouter();
@@ -20,14 +29,25 @@ function ExploreContent() {
   // Filter States
   const [search, setSearch] = useState(queryParam);
   const [category, setCategory] = useState(categoryParam);
-  const [maxDistance, setMaxDistance] = useState<number>(10);
   const [onlyVerified, setOnlyVerified] = useState(false);
   const [minRating, setMinRating] = useState<number>(0);
   const [maxPrice, setMaxPrice] = useState<number>(500);
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
+  // Location & radius state
+  const [seekerLocation, setSeekerLocation] = useState<SeekerLocationState>(EMPTY_SEEKER_LOCATION);
+  const [radius, setRadius] = useState<RadiusOption>(DEFAULT_RADIUS_KM);
+
+  // Hydrate from localStorage on first mount so the same location flows
+  // through the provider profile page.
+  useEffect(() => {
+    setSeekerLocation(loadStoredSeekerLocation());
+  }, []);
+
   const [providers, setProviders] = useState<WorkerProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [noNearbyMatch, setNoNearbyMatch] = useState(false);
+  const [currentSearchRadius, setCurrentSearchRadius] = useState<RadiusOption>(DEFAULT_RADIUS_KM);
 
   // Sync params to local search state
   useEffect(() => {
@@ -35,22 +55,30 @@ function ExploreContent() {
     setCategory(categoryParam);
   }, [queryParam, categoryParam]);
 
-  // Load and filter data locally
+  // Load and filter data
   useEffect(() => {
     const load = async () => {
       setLoading(true);
+      setNoNearbyMatch(false);
       try {
         const data = await getProviders({
           search,
           category,
-          maxDistance,
-          verified: onlyVerified,
+          lat: seekerLocation.coords?.latitude ?? null,
+          lng: seekerLocation.coords?.longitude ?? null,
+          radius: seekerLocation.coords ? radius : null,
           minRating: minRating || undefined
         });
 
-        // Apply price filter locally
         const finalData = data.filter(w => w.hourlyRate <= maxPrice);
         setProviders(finalData);
+
+        // Detect "no nearby workers" outcome so we can show the empty
+        // state with the wider-area recovery action.
+        if (seekerLocation.coords && finalData.length === 0) {
+          setNoNearbyMatch(true);
+          setCurrentSearchRadius(radius);
+        }
       } catch (e) {
         console.error(e);
       } finally {
@@ -58,17 +86,41 @@ function ExploreContent() {
       }
     };
     load();
-  }, [search, category, maxDistance, onlyVerified, minRating, maxPrice]);
+  }, [search, category, seekerLocation, radius, minRating, maxPrice]);
 
   const clearFilters = () => {
     setSearch('');
     setCategory('');
-    setMaxDistance(10);
+    setSeekerLocation(EMPTY_SEEKER_LOCATION);
+    setRadius(DEFAULT_RADIUS_KM);
     setOnlyVerified(false);
     setMinRating(0);
     setMaxPrice(500);
     router.push('/explore');
   };
+
+  const widenSearch = () => {
+    // Jump to "Any distance" so we surface workers from anywhere.
+    setRadius(0);
+    setNoNearbyMatch(false);
+  };
+
+  // Persist the seeker location to the backend whenever it changes,
+  // best-effort — failures here must not break local search behaviour.
+  useEffect(() => {
+    // Mirror to localStorage immediately so the provider profile page can
+    // pick the same coords up without re-asking for permission.
+    persistSeekerLocation(seekerLocation);
+
+    if (!seekerLocation.coords && !seekerLocation.city) return;
+    const payload: { city?: string; latitude?: number; longitude?: number } = {};
+    if (seekerLocation.city) payload.city = seekerLocation.city;
+    if (seekerLocation.coords) {
+      payload.latitude = seekerLocation.coords.latitude;
+      payload.longitude = seekerLocation.coords.longitude;
+    }
+    updateMyLocation(payload).catch(() => {});
+  }, [seekerLocation]);
 
   const categories = ['Cleaning', 'Repairs', 'Gardening', 'Elder Care', 'Cooking'];
 
@@ -168,20 +220,22 @@ function ExploreContent() {
           <div className="space-y-2 border-t border-surface-border pt-4">
             <div className="flex justify-between items-center text-xs font-bold text-ink-muted">
               <span>Max Distance Radius</span>
-              <span className="text-ink font-semibold">{maxDistance} km</span>
+              <span className="text-ink font-semibold">
+                {radius === 0 ? 'Any distance' : `${radius} km`}
+              </span>
             </div>
             <input
               type="range"
               min="1"
-              max="15"
+              max="50"
               step="1"
-              value={maxDistance}
-              onChange={(e) => setMaxDistance(Number(e.target.value))}
+              value={radius === 0 ? 50 : radius}
+              onChange={(e) => setRadius(Number(e.target.value) as RadiusOption)}
               className="w-full h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-brand-500"
             />
             <div className="flex justify-between text-[10px] text-ink-subtle font-semibold">
               <span>1 km</span>
-              <span>15 km</span>
+              <span>Any</span>
             </div>
           </div>
 
@@ -219,6 +273,14 @@ function ExploreContent() {
               </span>
             </label>
           </div>
+
+          {/* Geo-location + radius (desktop) */}
+          <LocationControl
+            value={seekerLocation}
+            radius={radius}
+            onChange={setSeekerLocation}
+            onRadiusChange={setRadius}
+          />
         </aside>
 
         {/* Search Results */}
@@ -240,13 +302,31 @@ function ExploreContent() {
               ))}
             </div>
           ) : providers.length === 0 ? (
-            <EmptyState
-              icon={Search}
-              title="No skilled workers found nearby"
-              description="Try expanding your search radius, lowering the minimum rating filter, or search with different keywords."
-              actionLabel="Reset Discovery Filters"
-              onAction={clearFilters}
-            />
+            noNearbyMatch ? (
+              <EmptyState
+                icon={Compass}
+                title="No verified workers found nearby."
+                description={
+                  seekerLocation.city
+                    ? `No approved workers within ${
+                        currentSearchRadius === 0 ? 'any distance' : `${currentSearchRadius} km`
+                      } of ${seekerLocation.city}. Try widening the search area.`
+                    : `No approved workers within ${
+                        currentSearchRadius === 0 ? 'any distance' : `${currentSearchRadius} km`
+                      }. Try widening the search area.`
+                }
+                actionLabel="Search a wider area"
+                onAction={widenSearch}
+              />
+            ) : (
+              <EmptyState
+                icon={Search}
+                title="No skilled workers found nearby"
+                description="Try expanding your search radius, lowering the minimum rating filter, or search with different keywords."
+                actionLabel="Reset Discovery Filters"
+                onAction={clearFilters}
+              />
+            )
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {providers.map(p => (
@@ -315,22 +395,14 @@ function ExploreContent() {
               />
             </div>
 
-            {/* Mobile Distance Slider */}
-            <div className="space-y-2 border-t border-surface-border pt-4">
-              <div className="flex justify-between items-center text-xs font-bold text-ink-muted">
-                <span>Max Distance Radius</span>
-                <span className="text-ink font-semibold">{maxDistance} km</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="15"
-                step="1"
-                value={maxDistance}
-                onChange={(e) => setMaxDistance(Number(e.target.value))}
-                className="w-full h-1 bg-stone-200 rounded-lg appearance-none cursor-pointer accent-brand-500"
-              />
-            </div>
+            {/* Mobile Location Control */}
+            <LocationControl
+              value={seekerLocation}
+              radius={radius}
+              onChange={setSeekerLocation}
+              onRadiusChange={setRadius}
+              compact
+            />
 
             {/* Mobile verification checked toggle */}
             <div className="space-y-2 border-t border-surface-border pt-4">

@@ -3,15 +3,22 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { 
-  ArrowLeft, Calendar, Clock, MapPin, IndianRupee, 
+import {
+  ArrowLeft, Calendar, Clock, MapPin, IndianRupee,
   ShieldCheck, AlertCircle, Phone, MessageSquare, Play, CheckCircle,
-  Users, UserCheck, Star, XCircle, CheckCircle2, RefreshCw
+  Users, UserCheck, Star, XCircle, CheckCircle2, RefreshCw, CreditCard, Loader2
 } from 'lucide-react';
 import { Gig, ShiftApplication, User } from '../../../types';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { getGigById, getShiftApplications, updateApplicationStatus } from '../../../services/gigs';
-import { markShiftPaid } from '../../../services/payments';
+import {
+  markShiftPaid,
+  getRazorpayConfig,
+  createRazorpayOrder,
+  verifyRazorpayPayment,
+  openRazorpayCheckout,
+  getShiftPayments
+} from '../../../services/payments';
 import { getMe } from '../../../services/auth';
 
 export default function BookingDetailPage() {
@@ -22,6 +29,10 @@ export default function BookingDetailPage() {
   const [applications, setApplications] = useState<ShiftApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [razorpayReady, setRazorpayReady] = useState(false);
+  const [razorpayConfigured, setRazorpayConfigured] = useState(false);
+  const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid' | 'failed'>('unpaid');
+  const [paying, setPaying] = useState(false);
 
   const gigId = params.id as string;
 
@@ -42,10 +53,83 @@ export default function BookingDetailPage() {
       ]);
       setGig(gigData);
       setApplications(appsData);
+
+      // Refresh payment status for this shift
+      try {
+        const shiftPayments = await getShiftPayments(gigId);
+        if (shiftPayments.some((p) => p.status === 'completed')) {
+          setPaymentStatus('paid');
+        } else if (shiftPayments.some((p) => p.status === 'failed')) {
+          setPaymentStatus('failed');
+        }
+      } catch {
+        // ignore payment lookup errors; UI will fall back to default state
+      }
     } catch (e) {
       console.error('Failed to load booking details', e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Detect whether Razorpay is configured on the server. We do this once on mount.
+  useEffect(() => {
+    let mounted = true;
+    getRazorpayConfig()
+      .then((cfg) => {
+        if (!mounted) return;
+        setRazorpayConfigured(Boolean(cfg.configured && cfg.keyId));
+      })
+      .catch(() => {
+        if (!mounted) return;
+        setRazorpayConfigured(false);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleRazorpayPayment = async () => {
+    if (!gig) return;
+    setPaying(true);
+    try {
+      const order = await createRazorpayOrder(gig.id);
+      setRazorpayReady(true);
+
+      await openRazorpayCheckout({
+        orderId: order.orderId,
+        amountPaise: order.amount,
+        currency: order.currency,
+        keyId: order.keyId,
+        employerName: currentUser?.name || 'Employer',
+        employerEmail: currentUser?.email || '',
+        employerPhone: currentUser?.phone,
+        description: `Payout for ${gig.title}`,
+        shiftId: gig.id,
+        onSuccess: async (response) => {
+          try {
+            await verifyRazorpayPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              shiftId: gig.id
+            });
+            setPaymentStatus('paid');
+            await fetchGigData();
+          } catch (verifyErr: any) {
+            setPaymentStatus('failed');
+            alert(verifyErr?.message || 'Payment verification failed');
+          }
+        },
+        onDismiss: () => {
+          // User closed the widget without completing payment.
+        }
+      });
+    } catch (e: any) {
+      setPaymentStatus('failed');
+      alert(e?.message || 'Failed to start Razorpay checkout');
+    } finally {
+      setPaying(false);
     }
   };
 
@@ -470,6 +554,80 @@ export default function BookingDetailPage() {
           </div>
           <p className="text-2xl font-extrabold text-brand-700">₹{gig.paymentAmount}</p>
         </div>
+
+        {/* Razorpay Payout Section - shown to the employer once the shift is completed */}
+        {currentUser && currentUser.role !== 'worker' && (
+          <div className="bg-white border border-surface-border rounded-2xl p-5 mt-4 space-y-3 shadow-2xs">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-[#3399cc]/10 text-[#1f6fa6] flex items-center justify-center">
+                  <CreditCard size={16} />
+                </div>
+                <div>
+                  <p className="text-xs font-extrabold text-ink">Worker Payout</p>
+                  <p className="text-[10px] text-ink-muted">Powered by Razorpay (Test Mode)</p>
+                </div>
+              </div>
+              {paymentStatus === 'paid' ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-1 rounded-full">
+                  <CheckCircle2 size={12} /> Paid
+                </span>
+              ) : paymentStatus === 'failed' ? (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-rose-50 text-rose-700 border border-rose-200 px-2 py-1 rounded-full">
+                  <AlertCircle size={12} /> Payment Failed
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase bg-amber-50 text-amber-800 border border-amber-200 px-2 py-1 rounded-full">
+                  <Loader2 size={12} /> Pending
+                </span>
+              )}
+            </div>
+
+            {paymentStatus === 'paid' ? (
+              <p className="text-[11px] text-emerald-800 font-semibold">
+                ✓ Worker has been paid. A confirmation notification has been sent.
+              </p>
+            ) : gig.status === 'completed' || gig.status === 'COMPLETED' || gig.checkOutTime ? (
+              <>
+                <p className="text-[11px] text-ink-muted leading-relaxed">
+                  The shift has been completed. Release the payout of{' '}
+                  <strong className="text-ink">₹{gig.paymentAmount}</strong> to the worker securely
+                  via Razorpay. The transaction is protected by a backend signature verification
+                  using your secret credentials.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleRazorpayPayment}
+                  disabled={paying || !razorpayConfigured}
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-[#1f6fa6] hover:bg-[#155a8a] text-white px-5 py-2.5 text-xs font-extrabold shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {paying ? (
+                    <>
+                      <Loader2 size={14} className="animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    <>
+                      <CreditCard size={14} />
+                      Pay ₹{gig.paymentAmount} with Razorpay
+                    </>
+                  )}
+                </button>
+                {!razorpayConfigured && (
+                  <p className="text-[10px] text-amber-700 font-semibold">
+                    Razorpay is not configured on the server. Set RAZORPAY_KEY_ID and
+                    RAZORPAY_KEY_SECRET in the server .env to enable online payouts.
+                  </p>
+                )}
+              </>
+            ) : (
+              <p className="text-[11px] text-ink-muted">
+                The shift must be completed (worker check-out) before the payout can be
+                released via Razorpay.
+              </p>
+            )}
+          </div>
+        )}
 
       </div>
 

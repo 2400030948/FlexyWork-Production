@@ -3,6 +3,7 @@ import { z } from "zod";
 import { requireAuth, requireRole, computeWorkerVerificationStatus } from "../middleware/auth.js";
 import { WorkerProfile } from "../models/Profile.js";
 import { User } from "../models/User.js";
+import { haversineKm, boundingBox, isValidCoordinate } from "../services/geo.js";
 
 const router = express.Router();
 const objectIdPattern = /^[0-9a-fA-F]{24}$/;
@@ -42,8 +43,13 @@ function serializeExperience(exp) {
   };
 }
 
-function serializeWorker(profile, user) {
+function serializeWorker(profile, user, { distance } = {}) {
   const status = computeWorkerVerificationStatus(profile);
+  // Only surface a non-null distance when the caller actually computed one.
+  // Never leak raw coordinates through the API.
+  const safeDistance =
+    typeof distance === "number" && Number.isFinite(distance) ? distance : null;
+
   return {
     id: profile._id.toString(),
     userId: profile.userId.toString(),
@@ -53,7 +59,8 @@ function serializeWorker(profile, user) {
     skills: profile.skills || [],
     bio: profile.bio || profile.experience || "Reliable local service provider.",
     location: profile.location || user?.location || "Vijayawada",
-    distance: 1.2,
+    distance: safeDistance,
+    hasCoordinates: Number.isFinite(profile.latitude) && Number.isFinite(profile.longitude),
     rating: profile.rating || 4.8,
     completedGigsCount: profile.completedShifts || 0,
     reliabilityScore: profile.reliabilityScore || 94,
@@ -71,11 +78,17 @@ function serializeWorker(profile, user) {
   };
 }
 
-async function serializeWorkers(profiles) {
+async function serializeWorkers(profiles, distances) {
   const userIds = profiles.map((profile) => profile.userId);
   const users = await User.find({ _id: { $in: userIds } });
   const usersById = new Map(users.map((user) => [user._id.toString(), user]));
-  return profiles.map((profile) => serializeWorker(profile, usersById.get(profile.userId.toString())));
+  return profiles.map((profile) =>
+    serializeWorker(
+      profile,
+      usersById.get(profile.userId.toString()),
+      { distance: distances ? distances.get(profile._id.toString()) : null }
+    )
+  );
 }
 
 const availabilityPayload = z.object({
@@ -112,14 +125,35 @@ const profilePayload = z.object({
   bio: z.string().min(2).optional(),
   hourlyRate: z.coerce.number().min(1).optional(),
   location: z.string().min(2).optional(),
-  skills: z.array(z.string()).optional()
+  skills: z.array(z.string()).optional(),
+  // Optional coordinates for service location updates. Validated strictly
+  // so we never persist out-of-range or non-finite numbers.
+  latitude: z.coerce.number().min(-90).max(90).optional(),
+  longitude: z.coerce.number().min(-180).max(180).optional()
 });
 
 const searchQuerySchema = z.object({
   search: z.string().max(100).optional(),
   category: z.string().max(100).optional(),
-  minRating: z.coerce.number().min(0).max(5).optional()
+  minRating: z.coerce.number().min(0).max(5).optional(),
+  // Seeker-supplied geolocation. Optional. Both must be present together.
+  lat: z.coerce.number().min(-90).max(90).optional(),
+  lng: z.coerce.number().min(-180).max(180).optional(),
+  // Radius bucket in kilometres. Validated against the allowed buckets below.
+  radius: z.coerce.number().min(1).max(500).optional()
 });
+
+export const ALLOWED_RADIUS_OPTIONS_KM = [5, 10, 25, 50];
+export const DEFAULT_RADIUS_KM = 10;
+
+function sanitiseRadius(input) {
+  if (typeof input !== "number" || !Number.isFinite(input)) return DEFAULT_RADIUS_KM;
+  // Snap to closest allowed bucket so we don't accept arbitrary values.
+  const closest = ALLOWED_RADIUS_OPTIONS_KM.reduce((acc, current) =>
+    Math.abs(current - input) < Math.abs(acc - input) ? current : acc
+  , ALLOWED_RADIUS_OPTIONS_KM[0]);
+  return closest;
+}
 
 // Helper: ensure the authenticated worker can only operate on their own profile.
 async function getOwnProfile(req, res) {
@@ -155,7 +189,7 @@ router.get("/", async (req, res, next) => {
   try {
     const parsed = searchQuerySchema.safeParse(req.query);
     if (!parsed.success) return res.status(400).json({ message: "Invalid query parameters" });
-    const { search, category, minRating } = parsed.data;
+    const { search, category, minRating, lat, lng, radius } = parsed.data;
 
     const query = {};
     if (category) query.skills = { $in: [category] };
@@ -165,11 +199,68 @@ router.get("/", async (req, res, next) => {
       query.$or = [{ bio: regex }, { experience: regex }, { location: regex }, { skills: regex }];
     }
 
+    // Geo pre-filter using a bounding box so we never load every worker in
+    // the database just to compute Haversine. The bbox is intentionally a
+    // little wider than the requested radius so we don't miss workers on
+    // the edges; the actual distance is recomputed accurately below.
+    const seekerOrigin = lat !== undefined && lng !== undefined
+      ? { latitude: lat, longitude: lng }
+      : null;
+
+    if (
+      seekerOrigin &&
+      isValidCoordinate(seekerOrigin.latitude, -90, 90) &&
+      isValidCoordinate(seekerOrigin.longitude, -180, 180)
+    ) {
+      const effectiveRadius = sanitiseRadius(radius);
+      const bbox = boundingBox(seekerOrigin, effectiveRadius);
+      if (bbox) {
+        query.latitude = { $gte: bbox.minLat, $lte: bbox.maxLat };
+        query.longitude = { $gte: bbox.minLng, $lte: bbox.maxLng };
+      }
+    }
+
     const profiles = await WorkerProfile.find(query).limit(50);
-    const workers = await serializeWorkers(profiles);
+
+    // Compute exact Haversine distance per worker.
+    const distances = new Map();
+    if (seekerOrigin) {
+      for (const profile of profiles) {
+        const km = haversineKm(
+          seekerOrigin,
+          { latitude: profile.latitude, longitude: profile.longitude }
+        );
+        if (km !== null) distances.set(profile._id.toString(), km);
+      }
+    }
+
+    let workers = await serializeWorkers(profiles, distances);
+
     // Per trust barrier: only show APPROVED workers to seekers/employers.
-    const filtered = workers.filter((w) => w.workerVerificationStatus === "approved");
-    res.json({ workers: filtered });
+    workers = workers.filter((w) => w.workerVerificationStatus === "approved");
+
+    // Enforce strict radius after Haversine so users who pass a custom
+    // radius get an accurate filter. Workers without coordinates are kept
+    // only when no geo search is in effect.
+    if (seekerOrigin) {
+      const effectiveRadius = sanitiseRadius(radius);
+      const inRange = workers.filter((w) => w.distance !== null && w.distance <= effectiveRadius);
+      if (inRange.length === 0) {
+        return res.json({
+          workers: [],
+          searchedWithLocation: true,
+          radius: effectiveRadius
+        });
+      }
+      // Sort closest-first when a location was provided.
+      workers = inRange.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    } else {
+      // No location supplied: order by reputation so existing search
+      // behaviour is preserved (highest rating, then most completed).
+      workers.sort((a, b) => (b.rating || 0) - (a.rating || 0) || (b.completedGigsCount || 0) - (a.completedGigsCount || 0));
+    }
+
+    res.json({ workers });
   } catch (error) {
     next(error);
   }
@@ -219,6 +310,20 @@ router.put("/me", requireAuth, requireRole("worker"), async (req, res, next) => 
     if (body.bio) profileUpdates.bio = body.bio;
     if (body.hourlyRate) profileUpdates.expectedHourlyWage = body.hourlyRate;
     if (body.skills) profileUpdates.skills = body.skills;
+
+    // Coords must be supplied together. If only one arrives we reject
+    // rather than silently dropping the other — partial coords corrupt
+    // every distance calculation they touch.
+    if (body.latitude !== undefined || body.longitude !== undefined) {
+      if (body.latitude === undefined || body.longitude === undefined) {
+        return res.status(400).json({
+          message: "Both latitude and longitude must be supplied together"
+        });
+      }
+      profileUpdates.latitude = body.latitude;
+      profileUpdates.longitude = body.longitude;
+      profileUpdates.locationUpdatedAt = new Date();
+    }
 
     const [user, profile] = await Promise.all([
       Object.keys(userUpdates).length
@@ -474,7 +579,17 @@ router.get("/:id", async (req, res, next) => {
     if (!profile) return res.status(404).json({ message: "Worker profile not found" });
 
     const user = await User.findById(profile.userId);
-    res.json({ worker: serializeWorker(profile, user) });
+
+    // If the requesting seeker supplied their own coordinates, compute the
+    // exact distance and surface it in the response.
+    let distance = null;
+    const lat = Number(req.query.lat);
+    const lng = Number(req.query.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      distance = haversineKm({ latitude: lat, longitude: lng }, { latitude: profile.latitude, longitude: profile.longitude });
+    }
+
+    res.json({ worker: serializeWorker(profile, user, { distance }) });
   } catch (error) {
     next(error);
   }

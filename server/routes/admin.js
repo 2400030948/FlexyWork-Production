@@ -61,7 +61,10 @@ function serializeWorker(profile, user) {
     skills: profile.skills || [],
     bio: profile.bio || profile.experience || "Reliable local service provider.",
     location: profile.location || user?.location || "Vijayawada",
-    distance: 1.2,
+    // Admin sees the general city/area label only — exact coordinates
+    // are intentionally withheld from the admin UI as well to honour the
+    // privacy contract.
+    distance: null,
     rating: profile.rating || 4.8,
     completedGigsCount: profile.completedShifts || 0,
     reliabilityScore: profile.reliabilityScore || 94,

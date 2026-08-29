@@ -281,7 +281,81 @@ router.get("/me", requireAuth, async (req, res) => {
     req.user.role === "worker"
       ? await WorkerProfile.findOne({ userId: req.user._id })
       : await EmployerProfile.findOne({ userId: req.user._id });
-  res.json({ user: req.user, profile });
+  // Strip sensitive raw coordinates from the user payload before sending.
+  // Workers never expose lat/lng to other workers / seekers; seekers only
+  // need to know their own coordinates are present.
+  const safeUser = {
+    id: req.user._id.toString(),
+    name: req.user.name,
+    email: req.user.email,
+    role: req.user.role,
+    location: req.user.location,
+    hasCoordinates:
+      Number.isFinite(req.user.latitude) && Number.isFinite(req.user.longitude),
+    locationUpdatedAt: req.user.locationUpdatedAt || null,
+    profileImage: req.user.profileImage,
+    phone: req.user.phone
+  };
+  res.json({ user: safeUser, profile });
+});
+
+const locationPayload = z
+  .object({
+    city: z.string().max(120).optional().default(""),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional()
+  })
+  .refine(
+    (data) =>
+      // Allow clearing the location entirely by sending neither field.
+      (data.latitude === undefined && data.longitude === undefined) ||
+      (data.latitude !== undefined && data.longitude !== undefined),
+    {
+      message: "latitude and longitude must be supplied together"
+    }
+  );
+
+/**
+ * Persist the seeker's (employer/admin) location. Used by the browser
+ * geolocation flow on the explore / search pages. Coordinates are
+ * optional — the seeker can also save just a city name if they decline
+ * permission.
+ */
+router.put("/me/location", requireAuth, async (req, res, next) => {
+  try {
+    const body = locationPayload.parse(req.body);
+
+    const updates = {};
+    if (body.city) updates.location = body.city;
+    if (body.latitude !== undefined && body.longitude !== undefined) {
+      updates.latitude = body.latitude;
+      updates.longitude = body.longitude;
+      updates.locationUpdatedAt = new Date();
+    } else if (body.city) {
+      // City-only update: clear any prior coordinates so we never match
+      // against a stale GPS reading.
+      updates.latitude = null;
+      updates.longitude = null;
+      updates.locationUpdatedAt = null;
+    }
+
+    const user = await User.findByIdAndUpdate(req.user._id, updates, { returnDocument: "after" });
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({
+      user: {
+        id: user._id.toString(),
+        name: user.name,
+        email: user.email,
+        role: user.role === "seeker" ? "employer" : user.role,
+        location: user.location,
+        latitude: user.latitude,
+        longitude: user.longitude,
+        locationUpdatedAt: user.locationUpdatedAt
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 export default router;

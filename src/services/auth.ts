@@ -99,3 +99,17 @@ export async function getMe(): Promise<User | null> {
     return null;
   }
 }
+
+export interface SeekerLocationUpdate {
+  city?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export async function updateMyLocation(payload: SeekerLocationUpdate): Promise<User> {
+  const data = await apiCall<{ user: ApiUser }>('/api/auth/me/location', {
+    method: 'PUT',
+    body: JSON.stringify(payload)
+  });
+  return fromApiUser(data.user);
+}
