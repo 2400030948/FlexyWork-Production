@@ -5,11 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Sparkles, Briefcase, Calendar, Clock, MapPin, IndianRupee, 
-  Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye, HelpCircle
   Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye, HelpCircle,
   Mic, MicOff, Wand2, TrendingUp, Award, ShieldCheck
 } from 'lucide-react';
-import { createGig, parseShiftNaturalLanguage, parseAIPrompt } from '../../services/gigs';
 import { createGig, parseShiftNaturalLanguage, parseAIPrompt, enhanceShiftDescription, getWageBenchmarks } from '../../services/gigs';
 
 const CATEGORIES = [
@@ -227,7 +225,6 @@ export default function PostGigPage() {
       setError('Please provide the gig work location.');
       return;
     }
-    if (paymentAmount <= 0) {
     if (!paymentAmount || Number(paymentAmount) <= 0) {
       setError('Please enter a valid payout amount.');
       return;
@@ -246,7 +243,6 @@ export default function PostGigPage() {
         endTime,
         duration,
         paymentType,
-        paymentAmount,
         paymentAmount: Number(paymentAmount),
         location,
         urgency
@@ -342,102 +338,54 @@ export default function PostGigPage() {
         </Link>
       </div>
 
-      {/* AI Smart Autofill Bar */}
-      <div className="rounded-3xl border border-brand-200 bg-gradient-to-r from-brand-50/70 via-indigo-50/40 to-white p-6 shadow-sm space-y-3">
-        <div className="flex items-center gap-2 text-brand-700 font-extrabold text-sm">
-          <Sparkles size={18} className="text-brand-500 animate-pulse" />
-          <span>Smart AI Gig Creator</span>
-          <span className="text-[10px] font-semibold bg-brand-100 text-brand-800 px-2 py-0.5 rounded-full uppercase">Fast-Fill</span>
-      {/* AI Smart Natural Language Creator */}
-      <div className="rounded-3xl border border-brand-200 bg-gradient-to-r from-brand-50/80 via-indigo-50/50 to-white p-6 sm:p-7 shadow-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2 text-brand-700 font-extrabold text-sm sm:text-base">
-            <Sparkles size={20} className="text-brand-500 animate-pulse" />
-            <span>Smart Natural Language Shift Creator</span>
-            <span className="text-[10px] font-semibold bg-brand-100 text-brand-800 px-2.5 py-0.5 rounded-full uppercase">AI-Assisted</span>
+      {/* Minimalist Quick Shift Autofill */}
+      <div className="rounded-2xl border border-surface-border bg-white p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-ink">Quick Fill from Text</span>
+            <span className="text-xxs text-ink-subtle">Type or speak shift requirements to pre-fill the form</span>
           </div>
-          <span className="text-[11px] font-semibold text-ink-muted">English & Hindi / Hinglish Supported</span>
         </div>
-        <p className="text-xs text-ink-muted">
-          Type your requirement in plain English and let AI fill in all fields instantly:
-        </p>
 
-        <div className="flex flex-col sm:flex-row gap-2">
-          <input
-            type="text"
+        <div className="relative rounded-xl border border-surface-border bg-stone-50/50 focus-within:bg-white focus-within:border-brand-500/50 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all">
+          <textarea
+            rows={2}
             value={aiPrompt}
             onChange={(e) => setAiPrompt(e.target.value)}
-            placeholder="e.g. Need 2 cafe helpers tomorrow 4pm to 9pm in Indiranagar paying ₹800"
-            className="flex-grow rounded-2xl border border-brand-200 bg-white py-3 px-4 text-xs font-medium text-ink placeholder-ink-subtle shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            placeholder="e.g. Need 1 waiter this Saturday from 6 PM to 11 PM paying ₹1000 with customer service skills"
+            className="w-full bg-transparent p-3.5 pr-28 text-xs font-medium text-ink placeholder:text-stone-400 focus:outline-none resize-none leading-relaxed"
             onKeyDown={(e) => {
-              if (e.key === 'Enter') {
+              if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 handleAIParsing();
               }
             }}
           />
-          <button
-            type="button"
-            onClick={() => handleAIParsing()}
-            disabled={aiLoading || !aiPrompt.trim()}
-            className="rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-3 text-xs font-bold transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5"
-          >
-            {aiLoading ? (
-              <>
-                <Sparkles size={14} className="animate-spin" />
-                Parsing...
-              </>
-        <div className="space-y-1.5">
-          <label className="text-xs font-bold text-ink block">
-            Describe the shift in your own words
-          </label>
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            <div className="relative flex-grow">
-              <textarea
-                rows={2}
-                value={aiPrompt}
-                onChange={(e) => setAiPrompt(e.target.value)}
-                placeholder="Example: I need a waiter this Saturday from 6 PM to 11 PM. Pay is ₹1000 for the shift. Must have customer service experience."
-                className="w-full rounded-2xl border border-brand-200 bg-white py-3 pl-4 pr-12 text-xs font-medium text-ink placeholder-ink-subtle shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-500/20 resize-none leading-relaxed"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleAIParsing();
-                  }
-                }}
-              />
-              
-              {/* Voice Speech-to-Text Trigger */}
-              <button
-                type="button"
-                onClick={toggleVoiceInput}
-                className={`absolute right-3 top-3 p-2 rounded-xl transition-all ${
-                  isListening
-                    ? 'bg-rose-500 text-white animate-pulse shadow-md shadow-rose-500/30'
-                    : 'text-stone-400 hover:text-brand-600 hover:bg-stone-50'
-                }`}
-                title={isListening ? 'Listening... click to stop' : 'Click to speak shift description'}
-              >
-                {isListening ? <MicOff size={16} /> : <Mic size={16} />}
-              </button>
-            </div>
+          
+          <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              className={`p-1.5 rounded-lg text-xs transition-all ${
+                isListening
+                  ? 'bg-rose-50 text-rose-600 font-bold animate-pulse'
+                  : 'text-stone-400 hover:text-ink hover:bg-stone-200/50'
+              }`}
+              title={isListening ? 'Listening... click to stop' : 'Voice Input'}
+            >
+              {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+            </button>
 
             <button
               type="button"
               onClick={() => handleAIParsing()}
               disabled={aiLoading || !aiPrompt.trim()}
-              className="rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-6 py-3.5 text-xs font-extrabold transition-all shadow-sm shrink-0 flex items-center justify-center gap-2 self-stretch sm:self-auto"
+              className="rounded-lg bg-ink hover:bg-black disabled:opacity-30 text-white px-3.5 py-1.5 text-xs font-semibold transition-all shadow-xs flex items-center gap-1"
             >
               {aiLoading ? (
-                <>
-                  <Sparkles size={15} className="animate-spin" />
-                  <span>Understanding shift...</span>
-                </>
+                <span>Parsing...</span>
               ) : (
-                <>
-                  <Zap size={15} />
-                  <span>Generate Shift</span>
-                </>
+                <span>Auto-Fill</span>
               )}
             </button>
           </div>
@@ -445,31 +393,24 @@ export default function PostGigPage() {
 
         {/* AI Success / Clarification Banner */}
         {aiSuccessMessage && (
-          <div className={`text-xs font-semibold rounded-2xl p-3.5 flex items-center gap-2 animate-in fade-in duration-200 ${
+          <div className={`text-xs font-medium rounded-xl p-3 flex items-center gap-2 animate-in fade-in duration-200 ${
             needsClarification.length > 0
-              ? 'bg-amber-50 border border-amber-200 text-amber-900'
-              : 'bg-emerald-50 border border-emerald-200 text-emerald-800'
+              ? 'bg-amber-50/70 border border-amber-200/60 text-amber-900'
+              : 'bg-emerald-50/70 border border-emerald-200/60 text-emerald-900'
           }`}>
             {needsClarification.length > 0 ? (
-              <AlertCircle size={16} className="shrink-0 text-amber-600" />
+              <AlertCircle size={15} className="shrink-0 text-amber-600" />
             ) : (
-              <>
-                <Zap size={14} />
-                Auto-Fill Form
-              </>
-              <CheckCircle size={16} className="shrink-0 text-emerald-600" />
+              <CheckCircle size={15} className="shrink-0 text-emerald-600" />
             )}
-          </button>
-        </div>
             <span>{aiSuccessMessage}</span>
           </div>
         )}
 
-        {/* Preset Suggestions */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
-          <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider mr-1">Quick Suggestions:</span>
-          <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider mr-1">Quick Examples:</span>
-          {PRESET_PROMPTS.map((prompt, idx) => (
+        {/* Inline discreet suggestions */}
+        <div className="flex items-center gap-2 text-[11px] text-ink-subtle pt-0.5 overflow-x-auto no-scrollbar">
+          <span className="shrink-0 font-medium">Examples:</span>
+          {PRESET_PROMPTS.slice(0, 2).map((prompt, idx) => (
             <button
               key={idx}
               type="button"
@@ -477,11 +418,9 @@ export default function PostGigPage() {
                 setAiPrompt(prompt);
                 handleAIParsing(prompt);
               }}
-              className="text-[10px] font-medium bg-white hover:bg-brand-50 text-ink-muted hover:text-brand-700 border border-brand-100 rounded-full px-2.5 py-1 transition-all"
-              className="text-[10px] font-medium bg-white hover:bg-brand-50 text-ink-muted hover:text-brand-700 border border-brand-100 rounded-full px-3 py-1 transition-all"
+              className="truncate text-ink-muted hover:text-ink hover:underline underline-offset-2 transition-all shrink-0 max-w-[280px]"
             >
-              {prompt.split(' ').slice(0, 4).join(' ')}...
-              {prompt.split(' ').slice(0, 5).join(' ')}...
+              "{prompt}"
             </button>
           ))}
         </div>
@@ -774,7 +713,6 @@ export default function PostGigPage() {
               <div className="bg-brand-50/60 border border-brand-100 rounded-2xl p-3.5 space-y-1">
                 <div className="flex justify-between items-center text-xs font-bold text-brand-800">
                   <span>Total Estimated Outlay:</span>
-                  <span className="text-sm font-extrabold text-brand-700">₹{paymentAmount * workersRequired}</span>
                   <span className="text-sm font-extrabold text-brand-700">₹{(Number(paymentAmount) || 0) * workersRequired}</span>
                 </div>
                 <p className="text-[10px] text-brand-600">
@@ -801,9 +739,6 @@ export default function PostGigPage() {
 
           {/* Section 7: Description & Scope */}
           <div className="space-y-2 border-t border-surface-border pt-6">
-            <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">
-              7. Detailed Duties & Instructions
-            </label>
             <div className="flex justify-between items-center flex-wrap gap-2">
               <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">
                 7. Detailed Duties & Instructions
@@ -812,10 +747,10 @@ export default function PostGigPage() {
                 type="button"
                 onClick={handleEnhanceDescription}
                 disabled={enhancingDesc}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1 rounded-full transition-all disabled:opacity-50 shadow-2xs"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-black bg-stone-50 hover:bg-stone-100 border border-surface-border px-2.5 py-1 rounded-lg transition-all disabled:opacity-50"
               >
-                <Wand2 size={13} className={enhancingDesc ? "animate-spin text-brand-600" : "text-brand-600"} />
-                {enhancingDesc ? "Enhancing with AI..." : "✨ AI Polish Description"}
+                <Wand2 size={12} className={enhancingDesc ? "animate-spin text-ink" : "text-ink-muted"} />
+                {enhancingDesc ? "Formatting..." : "Auto-format duties"}
               </button>
             </div>
             <textarea
@@ -823,7 +758,6 @@ export default function PostGigPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the tasks, tools provided, attire, and any specific expectations..."
-              className="w-full rounded-2xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white"
               className="w-full rounded-2xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white leading-relaxed"
             />
           </div>
@@ -852,40 +786,28 @@ export default function PostGigPage() {
         <div className="lg:col-span-5 space-y-6">
           <div className="sticky top-24 space-y-4">
 
-            {/* AI Shift Attractiveness Quality Meter */}
-            <div className="rounded-3xl border border-surface-border bg-white p-5 shadow-sm space-y-3">
+            {/* Shift Completeness Meter */}
+            <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Award size={17} className="text-brand-600" />
-                  <span className="text-xs font-extrabold text-ink">AI Shift Quality Score</span>
-                </div>
-                <span className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
-                  qualityScore >= 80 
-                    ? 'bg-emerald-100 text-emerald-800' 
-                    : qualityScore >= 50 
-                    ? 'bg-amber-100 text-amber-800' 
-                    : 'bg-rose-100 text-rose-800'
-                }`}>
-                  {qualityScore}%
-                </span>
+                <span className="text-xs font-bold text-ink">Listing Completeness</span>
+                <span className="text-xs font-bold text-ink-muted">{qualityScore}%</span>
               </div>
-              <div className="w-full bg-stone-100 rounded-full h-2.5 overflow-hidden">
+              <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
                 <div 
-                  className={`h-full transition-all duration-500 rounded-full ${
-                    qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-rose-500'
+                  className={`h-full rounded-full transition-all duration-300 ${
+                    qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-stone-400'
                   }`}
                   style={{ width: `${qualityScore}%` }}
                 />
               </div>
               <p className="text-[11px] text-ink-muted leading-relaxed">
                 {qualityScore >= 80 ? (
-                  <span className="text-emerald-700 font-semibold flex items-center gap-1">
-                    <ShieldCheck size={14} className="shrink-0" />
-                    Highly attractive to workers! Estimated applicant response within ~15 mins.
+                  <span className="text-emerald-700 font-medium">
+                    ✓ Complete listing. Ready to publish to local verified workers.
                   </span>
                 ) : (
                   <span>
-                    💡 <strong>Tip:</strong> Provide clear duties, exact times, and specific location to match with verified local workers 3x faster.
+                    Add complete timing, pay, and location details for fastest matching.
                   </span>
                 )}
               </p>
@@ -970,7 +892,6 @@ export default function PostGigPage() {
                 <div>
                   <p className="text-xl font-black text-ink flex items-center gap-0.5">
                     <IndianRupee size={16} className="text-ink-muted" />
-                    {paymentAmount}
                     {paymentAmount || 0}
                   </p>
                   <p className="text-[10px] text-ink-subtle font-medium uppercase tracking-wider">
