@@ -1,197 +1,436 @@
-# 🌐 FlexyWork
+**FlexyWork** is a two-sided gig marketplace for Gig Workers and Service Seekers/Employers. Workers discover short-term work, manage availability, apply for shifts and track attendance. Employers create shifts, define requirements, review applicants and select workers.
 
-> **Cooperative Gig Services Platform** — *Work flex. Earn more. Grow together.*
+The platform follows an availability-first workforce model, making it suitable for temporary, urgent and short-duration work.
 
-FlexyWork is a community-driven gig marketplace that connects **local service seekers** with **verified, skilled workers** while empowering **cooperative collectives** to pool resources, share tools, and distribute work fairly. Built as a full-stack web application targeting India's informal-service economy, FlexyWork blends the flexibility of on-demand platforms (UrbanCompany, TaskRabbit) with the resilience and trust of local cooperatives.
+**Problem**
 
----
+Traditional hiring platforms are optimized for permanent jobs and longer recruitment cycles. They are less effective when an employer needs someone quickly, for a specific shift, with particular skills, within a defined budget and location.
 
-## ❗ Problem Statement
+Workers also struggle to find opportunities matching their skills, availability and expectations.
 
-India's urban and semi-urban service economy is fragmented:
+**Solution
+**
+FlexyWork reduces this friction through a structured workflow:
 
-- **Households** struggle to find *trusted* cleaners, electricians, gardeners, and elder-care workers on short notice.
-- **Skilled workers** — often operating informally — lack a steady stream of jobs, fair pricing, social protection, and professional growth.
-- **Worker cooperatives** that *could* provide shared tools, training, and backup have no digital infrastructure to coordinate.
-- Existing platforms (UrbanCompany, HouseJoy) extract high commissions, treat workers as replaceable, and offer no community backup.
+Employer Creates Gig
+        ↓
+Requirement Analysis
+        ↓
+Worker Matching
+        ↓
+Match Score + Ranking
+        ↓
+Worker Recommendations
+        ↓
+Application
+        ↓
+Employer Selection
+        ↓
+Attendance
+        ↓
+Completion
 
-There is a clear need for a **trust-first, community-backed, low-friction** alternative.
+**Stakeholders:**
 
----
+Service Seeker
 
-## 💡 Our Solution
+Role
 
-FlexyWork is a **two-sided cooperative gig platform** with three pillars:
+Gig Worker
 
-| Pillar | What it does |
-|---|---|
-| 🔍 **Smart Discovery** | Seekers find nearby, verified workers by skill, distance, rating, and price. |
-| 🤝 **Cooperative Backbone** | Workers join local collectives that share tools, insurance, and substitute workers. |
-| 💸 **Fair Earnings** | Cooperative gigs split payouts transparently, so no single worker carries the risk. |
+Profile, availability, gig discovery, applications and attendance
 
-The platform is designed around **trust, transparency, and dignity of work**.
+Employer / Service Seeker
 
-FLEXYWORK bridges this gap.
+Create gigs, define requirements, review applicants and select workers
 
-        STUDENTS
-            │
-            │ Skills
-            ▼
-      ┌─────────────┐
-      │  FLEXYWORK  │
-      └─────────────┘
-            ▲
-            │ Opportunities
-            │
-        CLIENTS
+Platform Admin
 
----
+Future verification, moderation, disputes and analytics
 
-🗄️ ER Diagram
-erDiagram
+Payment / Notification Providers
 
-    USER ||--o{ GIG : creates
-    USER ||--o{ APPLICATION : submits
-    GIG ||--o{ APPLICATION : receives
+Future external integrations
 
-    APPLICATION ||--|| CONTRACT : creates
+**Key Features**
 
-    USER ||--o{ CONTRACT : student
-    USER ||--o{ CONTRACT : client
+For Gig Workers
 
-    CONTRACT ||--o{ SUBMISSION : contains
-    CONTRACT ||--|| PAYMENT : generates
+Role-based registration and onboarding
 
-    CONTRACT ||--o{ REVIEW : receives
+Worker profile and skills
 
-    USER ||--o{ NOTIFICATION : receives
-    USER ||--o{ MESSAGE : sends
+Availability management
 
-    USER {
-        UUID id PK
-        string name
-        string email
-        string password
-        string role
+Gig discovery and filtering
+
+Smart Match Score
+
+Gig applications
+
+Upcoming and completed shifts
+
+Check-in / check-out
+
+Earnings representation
+
+For Employers
+
+Employer onboarding
+
+Create and manage gigs
+
+Define skills, budget, schedule and location
+
+Create urgent shifts
+
+View applicants
+
+Review worker rating and reliability
+
+Accept suitable workers
+
+**User Flow**
+
+Worker
+
+Signup → Worker Onboarding → Set Availability
+      → Browse Gigs → View Match Score → Apply
+      → Employer Accepts → Check In → Work
+      → Check Out → Completed
+
+Employer
+
+Signup → Employer Onboarding → Create Gig
+      → Define Requirements → Smart Recommendations
+      → Review Applicants → Accept Worker
+      → Track Shift → Completion
+**
+System Architecture**
+
+The current working application uses a React + Vite frontend, Express/Node.js backend and MongoDB.
+
+                  ┌──────────────────┐
+                  │      Users       │
+                  └────────┬─────────┘
+                           ↓
+                ┌─────────────────────┐
+                │    React + Vite     │
+                │      Frontend       │
+                └──────────┬──────────┘
+                           │ REST / JSON
+                           ↓
+                ┌─────────────────────┐
+                │   Express / Node.js │
+                │       Backend       │
+                ├─────────────────────┤
+                │ Authentication      │
+                │ Authorization       │
+                │ Shift Services      │
+                │ Application Services│
+                │ Attendance Services │
+                │ Matching Services   │
+                └──────────┬──────────┘
+                           ↓
+                ┌─────────────────────┐
+                │       MongoDB       │
+                └─────────────────────┘
+
+The frontend communicates through a centralized API layer, while business logic remains on the server.
+
+Smart Automation
+
+FlexyWork currently focuses on two core automation features.
+
+1. Intelligent Gig Matching & Score Engine
+
+Employer Posts Gig
+        ↓
+Requirement Analyzer
+        ↓
+Skills / Experience / Budget / Time
+        ↓
+Matching Engine
+        ↓
+Score Engine
+        ↓
+Ranked Workers
+        ↓
+Employer Recommendations
+
+The first version uses an explainable weighted score:
+
+Skills               40%
+Experience           25%
+Rating / Reliability 15%
+Availability         10%
+Budget Compatibility 10%
+                      ───
+                     100%
+
+Example: Worker A → 94%, Worker B → 88%, Worker C → 81%.
+
+The score is explainable rather than a black box. The employer always makes the final hiring decision.
+
+2. Automated Notifications & Workflow
+
+Gig Created → Top Matches Identified → Workers Notified
+     ↓
+Worker Applies → Employer Notified → Employer Accepts
+     ↓
+Worker Notified → Shift Reminder → Check In
+     ↓
+IN_PROGRESS → Check Out → COMPLETED
+
+This automates repetitive coordination while keeping important decisions with users.
+
+Security
+
+Security is enforced at the backend rather than relying only on frontend UI restrictions.
+
+Authentication through protected sessions
+
+Role-based authorization
+
+Resource ownership checks
+
+Server-side input validation
+
+Secure password hashing in production
+
+Environment variables for secrets
+
+Protected database credentials
+
+401 Unauthorized handling
+
+Duplicate application protection through database constraints
+
+Rate limiting and abuse protection for production
+
+Security model:
+
+Authentication + Role Authorization
+              +
+       Resource Ownership
+              +
+      Business Validation
+
+Scalability
+
+The MVP intentionally uses a simple architecture. As traffic grows, the backend can scale horizontally:
+
+                    Load Balancer
+                         │
+             ┌───────────┼───────────┐
+             ↓           ↓           ↓
+          API #1       API #2       API #3
+             │           │           │
+             └───────────┼───────────┘
+                         ↓
+                      MongoDB
+
+**Future improvements:
+**
+Redis caching
+
+Database indexing and optimization
+
+Background workers
+
+Message queues for matching and notifications
+
+CDN/static hosting
+
+Horizontal API scaling
+
+WebSockets/SSE for real-time updates
+
+Monitoring and centralized logging
+
+The matching and notification services are designed so they can later run asynchronously.
+
+**Feasibility**
+
+Technical: React, Node.js, Express and MongoDB provide a mature, low-complexity MVP stack.
+
+Operational: The model fits events, retail, hospitality, local businesses and other short-term workforce needs.
+
+Economic: The platform can start with a small infrastructure footprint and scale with usage. Future revenue can include employer subscriptions, platform commission and premium urgent matching.
+**
+Technology Stack
+**
+Layer
+
+Technology
+
+Frontend
+
+React, Vite, JavaScript, CSS
+
+Backend
+
+Node.js, Express
+
+Database
+
+MongoDB
+
+API
+
+REST / JSON
+
+Authentication
+
+Session/Cookie-based flow
+
+UI
+
+Lucide React
+
+Version Control
+
+Git
+
+UML Diagrams
+
+Use Case Diagram
+
+flowchart LR
+    Worker([Gig Worker])
+    Employer([Employer])
+    Admin([Admin])
+    System((FlexyWork))
+    Worker -->|Register / Login| System
+    Worker -->|Set Availability| System
+    Worker -->|Browse Gigs| System
+    Worker -->|Apply| System
+    Worker -->|Check In / Out| System
+    Employer -->|Register / Login| System
+    Employer -->|Create Gig| System
+    Employer -->|View Applicants| System
+    Employer -->|Review Matches| System
+    Employer -->|Accept Worker| System
+    Admin -->|Verify / Moderate| System
+
+Domain Model
+
+classDiagram
+    class User {
+        id
+        name
+        email
+        role
     }
-
-    GIG {
-        UUID id PK
-        UUID client_id FK
-        string title
-        string description
-        string category
-        decimal budget
-        date deadline
-        string status
+    class WorkerProfile {
+        skills
+        rating
+        reliability
+        availability
     }
-
-    APPLICATION {
-        UUID id PK
-        UUID gig_id FK
-        UUID student_id FK
-        string proposal
-        decimal proposed_price
-        string status
+    class EmployerProfile {
+        businessName
+        location
     }
-
-    CONTRACT {
-        UUID id PK
-        UUID gig_id FK
-        UUID student_id FK
-        UUID client_id FK
-        decimal amount
-        string status
+    class Gig {
+        title
+        skills
+        date
+        startTime
+        endTime
+        budget
+        location
+        status
     }
-
-    SUBMISSION {
-        UUID id PK
-        UUID contract_id FK
-        string file_url
-        string description
-        string status
+    class Application {
+        status
+        matchScore
+        createdAt
     }
-
-    PAYMENT {
-        UUID id PK
-        UUID contract_id FK
-        decimal amount
-        string payment_method
-        string status
+    class Attendance {
+        checkIn
+        checkOut
+        status
     }
+    User "1" --> "0..1" WorkerProfile
+    User "1" --> "0..1" EmployerProfile
+    EmployerProfile "1" --> "*" Gig
+    WorkerProfile "1" --> "*" Application
+    Gig "1" --> "*" Application
+    Application "1" --> "0..1" Attendance
 
-    REVIEW {
-        UUID id PK
-        UUID contract_id FK
-        UUID reviewer_id FK
-        UUID reviewee_id FK
-        integer rating
-        string comment
-    }
+Smart Matching Flow
 
-    NOTIFICATION {
-        UUID id PK
-        UUID user_id FK
-        string message
-        boolean is_read
-    }
+flowchart TD
+    A[Employer Creates Gig] --> B[Requirement Analyzer]
+    B --> C[Eligible Worker Filtering]
+    C --> D[Score Engine]
+    D --> E[Rank Workers]
+    E --> F[Top Matches]
+    F --> G[Employer Recommendations]
+    G --> H[Employer Makes Final Decision]
 
-    MESSAGE {
-        UUID id PK
-        UUID sender_id FK
-        UUID receiver_id FK
-        string message
-        datetime timestamp
-    }
-    
+Scalable Deployment
 
-## ✨ Key Features
+flowchart TB
+    U[Users] --> CDN[CDN / Static Hosting]
+    CDN --> LB[Load Balancer]
+    LB --> API1[Express API]
+    LB --> API2[Express API]
+    LB --> API3[Express API]
+    API1 --> DB[(MongoDB)]
+    API2 --> DB
+    API3 --> DB
+    API1 -.-> Q[Future Message Queue]
+    API2 -.-> Q
+    API3 -.-> Q
+    Q -.-> W[Background Workers]
 
-### 👤 For Service Seekers
-- 🔎 Explore workers by **category, location, rating, and price**
-- 📄 Detailed **provider profiles** (skills, availability, reliability score, reviews)
-- 📅 **Weekly availability viewer** — see when a worker is free before booking
-- 📝 Multi-step **service request wizard** (skill → schedule → location → review)
-- 📜 **Booking history** with status tracking (Requested → Accepted → In-Progress → Completed)
-- 💬 Direct in-app **messaging** with workers
-- 🔔 **Real-time notifications** for booking updates
+**Project Structure**
 
-### 🛠️ For Workers
-- 🧑‍🔧 **Profile management** with skills, bio, hourly rate, and verification badge
-- 🗓️ **Weekly availability editor** (Available / Limited / Unavailable per day)
-- 📥 **Inbox of gig invitations** ranked by match score
-- 📊 **Earnings dashboard** with charts (daily / weekly / monthly)
-- 🏘️ **Browse & join cooperative collectives** in the worker's locality
-- 🪪 **Identity verification** for the trust badge
-- 💼 **Cooperative gigs** — pool work with other verified workers and split payouts
+FlexyWork/
+├── frontend/
+│   ├── src/
+│   │   ├── main.jsx
+│   │   ├── auth.jsx
+│   │   └── styles.css
+│   └── package.json
+├── backend/
+│   ├── routes/
+│   ├── models/
+│   ├── services/
+│   └── server.js
+├── package.json
+└── README.md
 
-### 🏛️ For Administrators
-- 📈 **Platform KPIs** — total users, active gigs, GMV, retention
-- 🧑‍⚖️ **Worker verification queue** (approve/reject ID proofs)
-- 👥 **User registry** with role-based filtering
-- 📋 **Gig audit logs** for dispute resolution
-- 🛡️ **Community oversight** — moderate cooperative collectives
+The repository also contains a parallel Next.js prototype. The production direction should use one canonical frontend to avoid duplicated application logic.
 
-### 🏘️ For Cooperative Collectives *(Network Effect)*
-- 🤝 Public **community page** showcasing members, services, and ratings
-- 📣 **Cooperative gig board** — multiple workers apply, payout is auto-distributed
-- 🧰 **Shared resource pool** (tools, training, insurance)
-- 🔁 **Replacement support** — if a worker can't show up, the collective provides backup
+**Future Scope**
 
----
+AI-assisted requirement extraction
 
-## 🛠️ Tech Stack
+ML-based recommendations after sufficient historical data
 
-| Layer | Technology |
-|---|---|
-| **Frontend Framework** | Next.js 15 (App Router) + React 19 |
-| **Language** | TypeScript 5.7 |
-| **Styling** | Tailwind CSS 3.4 + custom design system (brand palette, soft surfaces) |
-| **Icons** | lucide-react |
-| **Animations** | framer-motion |
-| **Charts** | Recharts |
-| **Forms** | react-hook-form + zod validation |
-| **Backend** | Node.js + Express 5 |
-| **Database** | MongoDB (Mongoose ODM) |
-| **Auth** | JWT in HttpOnly cookies + bcrypt password hashing |
-| **Dev Tools** | Vite, PostCSS, ESLint, concurrently |
+Real-time notifications
+
+Email/SMS/push integration
+
+Online payments and escrow
+
+Identity verification
+
+Fraud and no-show detection
+
+Worker reputation system
+
+Admin dashboard and analytics
+
+Docker + CI/CD deployment
+
+Redis + message queues for large-scale workloads
+
+Core Value Proposition
+
+FlexyWork does not automate the human hiring decision. It automates the friction around finding, matching, notifying and managing gig workers.
+
+FIND → MATCH → NOTIFY → APPLY → SELECT → ATTEND → COMPLETE
