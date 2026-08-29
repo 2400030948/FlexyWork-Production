@@ -75,6 +75,7 @@ async function runTests() {
   console.log("Duration:", dur);
   console.assert(dur === "4h", "Midnight duration failed");
 
+  console.log("\n✅ ALL BACKEND SHIFT PARSER TESTS PASSED SUCCESSFULLY!");
   console.log("\n✅ ALL BACKEND SHIFT PARSER & HINGLISH TESTS PASSED SUCCESSFULLY!");
 }
 

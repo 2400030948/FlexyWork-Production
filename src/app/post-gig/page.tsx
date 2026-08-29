@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Sparkles, Briefcase, Calendar, Clock, MapPin, IndianRupee, 
+  Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye, HelpCircle
   Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye, HelpCircle,
   Mic, MicOff, Wand2, TrendingUp, Award, ShieldCheck
 } from 'lucide-react';
+import { createGig, parseShiftNaturalLanguage, parseAIPrompt } from '../../services/gigs';
 import { createGig, parseShiftNaturalLanguage, parseAIPrompt, enhanceShiftDescription, getWageBenchmarks } from '../../services/gigs';
 
 const CATEGORIES = [
@@ -225,6 +227,7 @@ export default function PostGigPage() {
       setError('Please provide the gig work location.');
       return;
     }
+    if (paymentAmount <= 0) {
     if (!paymentAmount || Number(paymentAmount) <= 0) {
       setError('Please enter a valid payout amount.');
       return;
@@ -243,6 +246,7 @@ export default function PostGigPage() {
         endTime,
         duration,
         paymentType,
+        paymentAmount,
         paymentAmount: Number(paymentAmount),
         location,
         urgency
@@ -338,6 +342,12 @@ export default function PostGigPage() {
         </Link>
       </div>
 
+      {/* AI Smart Autofill Bar */}
+      <div className="rounded-3xl border border-brand-200 bg-gradient-to-r from-brand-50/70 via-indigo-50/40 to-white p-6 shadow-sm space-y-3">
+        <div className="flex items-center gap-2 text-brand-700 font-extrabold text-sm">
+          <Sparkles size={18} className="text-brand-500 animate-pulse" />
+          <span>Smart AI Gig Creator</span>
+          <span className="text-[10px] font-semibold bg-brand-100 text-brand-800 px-2 py-0.5 rounded-full uppercase">Fast-Fill</span>
       {/* AI Smart Natural Language Creator */}
       <div className="rounded-3xl border border-brand-200 bg-gradient-to-r from-brand-50/80 via-indigo-50/50 to-white p-6 sm:p-7 shadow-sm space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
@@ -348,7 +358,35 @@ export default function PostGigPage() {
           </div>
           <span className="text-[11px] font-semibold text-ink-muted">English & Hindi / Hinglish Supported</span>
         </div>
+        <p className="text-xs text-ink-muted">
+          Type your requirement in plain English and let AI fill in all fields instantly:
+        </p>
 
+        <div className="flex flex-col sm:flex-row gap-2">
+          <input
+            type="text"
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="e.g. Need 2 cafe helpers tomorrow 4pm to 9pm in Indiranagar paying ₹800"
+            className="flex-grow rounded-2xl border border-brand-200 bg-white py-3 px-4 text-xs font-medium text-ink placeholder-ink-subtle shadow-inner focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleAIParsing();
+              }
+            }}
+          />
+          <button
+            type="button"
+            onClick={() => handleAIParsing()}
+            disabled={aiLoading || !aiPrompt.trim()}
+            className="rounded-2xl bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white px-5 py-3 text-xs font-bold transition-all shadow-sm shrink-0 flex items-center justify-center gap-1.5"
+          >
+            {aiLoading ? (
+              <>
+                <Sparkles size={14} className="animate-spin" />
+                Parsing...
+              </>
         <div className="space-y-1.5">
           <label className="text-xs font-bold text-ink block">
             Describe the shift in your own words
@@ -415,14 +453,21 @@ export default function PostGigPage() {
             {needsClarification.length > 0 ? (
               <AlertCircle size={16} className="shrink-0 text-amber-600" />
             ) : (
+              <>
+                <Zap size={14} />
+                Auto-Fill Form
+              </>
               <CheckCircle size={16} className="shrink-0 text-emerald-600" />
             )}
+          </button>
+        </div>
             <span>{aiSuccessMessage}</span>
           </div>
         )}
 
         {/* Preset Suggestions */}
         <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider mr-1">Quick Suggestions:</span>
           <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider mr-1">Quick Examples:</span>
           {PRESET_PROMPTS.map((prompt, idx) => (
             <button
@@ -432,8 +477,10 @@ export default function PostGigPage() {
                 setAiPrompt(prompt);
                 handleAIParsing(prompt);
               }}
+              className="text-[10px] font-medium bg-white hover:bg-brand-50 text-ink-muted hover:text-brand-700 border border-brand-100 rounded-full px-2.5 py-1 transition-all"
               className="text-[10px] font-medium bg-white hover:bg-brand-50 text-ink-muted hover:text-brand-700 border border-brand-100 rounded-full px-3 py-1 transition-all"
             >
+              {prompt.split(' ').slice(0, 4).join(' ')}...
               {prompt.split(' ').slice(0, 5).join(' ')}...
             </button>
           ))}
@@ -727,6 +774,7 @@ export default function PostGigPage() {
               <div className="bg-brand-50/60 border border-brand-100 rounded-2xl p-3.5 space-y-1">
                 <div className="flex justify-between items-center text-xs font-bold text-brand-800">
                   <span>Total Estimated Outlay:</span>
+                  <span className="text-sm font-extrabold text-brand-700">₹{paymentAmount * workersRequired}</span>
                   <span className="text-sm font-extrabold text-brand-700">₹{(Number(paymentAmount) || 0) * workersRequired}</span>
                 </div>
                 <p className="text-[10px] text-brand-600">
@@ -753,6 +801,9 @@ export default function PostGigPage() {
 
           {/* Section 7: Description & Scope */}
           <div className="space-y-2 border-t border-surface-border pt-6">
+            <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">
+              7. Detailed Duties & Instructions
+            </label>
             <div className="flex justify-between items-center flex-wrap gap-2">
               <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">
                 7. Detailed Duties & Instructions
@@ -772,6 +823,7 @@ export default function PostGigPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the tasks, tools provided, attire, and any specific expectations..."
+              className="w-full rounded-2xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white"
               className="w-full rounded-2xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white leading-relaxed"
             />
           </div>
@@ -918,6 +970,7 @@ export default function PostGigPage() {
                 <div>
                   <p className="text-xl font-black text-ink flex items-center gap-0.5">
                     <IndianRupee size={16} className="text-ink-muted" />
+                    {paymentAmount}
                     {paymentAmount || 0}
                   </p>
                   <p className="text-[10px] text-ink-subtle font-medium uppercase tracking-wider">
