@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { isProduction } from "../config/env.js";
 
 function createTransporter() {
   const user = process.env.SMTP_USER;
@@ -76,18 +77,23 @@ export async function sendOtpEmail(toEmail, otp) {
       return { sent: true };
     } catch (err) {
       console.error(`[EMAIL ERROR] Failed to send email via SMTP:`, err.message);
-      // Fallback log for development
+      if (isProduction) {
+        throw err;
+      }
       console.log(`[DEV OTP FALLBACK] OTP for ${toEmail}: ${otp}`);
       return { sent: false, error: err.message, devOtp: otp };
     }
-  } else {
-    // When SMTP credentials are not yet configured in .env, log to console for development testing
-    console.log(`\n======================================================`);
-    console.log(`[FLEXYWORK OTP VERIFICATION]`);
-    console.log(`Email: ${toEmail}`);
-    console.log(`OTP Code: ${otp}`);
-    console.log(`(Configure SMTP_USER & SMTP_PASS in .env to deliver real emails)`);
-    console.log(`======================================================\n`);
-    return { sent: true, devMode: true };
   }
+
+  if (isProduction) {
+    throw new Error("SMTP is not configured. Set SMTP_USER and SMTP_PASS.");
+  }
+
+  console.log(`\n======================================================`);
+  console.log(`[FLEXYWORK OTP VERIFICATION - DEV ONLY]`);
+  console.log(`Email: ${toEmail}`);
+  console.log(`OTP Code: ${otp}`);
+  console.log(`(Configure SMTP_USER & SMTP_PASS in .env to deliver real emails)`);
+  console.log(`======================================================\n`);
+  return { sent: true, devMode: true };
 }

@@ -308,6 +308,9 @@ router.post("/verify", requireAuth, requireRole(["employer", "admin"]), async (r
 
 router.post("/:shiftId/mark-paid", requireAuth, requireRole(["employer", "admin"]), async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.ENABLE_MANUAL_PAYMENTS !== "true") {
+      return res.status(403).json({ message: "Manual payment marking is disabled in production. Use Razorpay." });
+    }
     const shift = await Shift.findById(req.params.shiftId);
     if (!shift) return res.status(404).json({ message: "Shift not found" });
     if (!shift.employerId.equals(req.user._id) && req.user.role !== "admin") return res.status(403).json({ message: "Forbidden" });

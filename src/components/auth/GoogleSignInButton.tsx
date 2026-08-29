@@ -32,9 +32,15 @@ export function GoogleSignInButton({
   const [googleSdkReady, setGoogleSdkReady] = useState(false);
   const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
-  const clientId =
-    process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
-    '1088719227568-1p6om25q1t206kspg1ebn1mgl4k58aeq.apps.googleusercontent.com'; // Standard default client ID
+  const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  if (!clientId) {
+    return (
+      <p className="text-sm text-stone-500 text-center">
+        Google Sign-In is not configured. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID.
+      </p>
+    );
+  }
 
   const handleCredentialResponse = async (response: any) => {
     if (!response?.credential) return;

@@ -405,6 +405,37 @@ FlexyWork/
 
 The repository also contains a parallel Next.js prototype. The production direction should use one canonical frontend to avoid duplicated application logic.
 
+**Deployment**
+
+Stack: Next.js 15 (frontend) + Express 5 (API) + MongoDB Atlas.
+
+### Docker (recommended)
+
+```bash
+cp .env.example .env          # fill in MongoDB, JWT, SMTP, Razorpay, Google OAuth
+npm run docker:build          # or: docker compose build
+npm run docker:up             # or: docker compose up
+```
+
+App runs at `http://localhost:3000`. Express API runs internally on port 4000; Next.js proxies `/api/*` to it.
+
+**Required `.env` values for production:**
+- `MONGODB_URI`, `JWT_SECRET` (32+ chars), `CLIENT_ORIGIN`
+- `SMTP_USER`, `SMTP_PASS`
+- `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`
+- `GOOGLE_CLIENT_ID`, `NEXT_PUBLIC_GOOGLE_CLIENT_ID`
+
+`NEXT_PUBLIC_GOOGLE_CLIENT_ID` is baked in at image build time. Rebuild after changing it:
+`docker compose build --no-cache`
+
+### Without Docker
+
+```bash
+npm install --legacy-peer-deps
+npm run build
+NODE_ENV=production npm start
+```
+
 **Future Scope**
 
 AI-assisted requirement extraction
@@ -424,8 +455,6 @@ Fraud and no-show detection
 Worker reputation system
 
 Admin dashboard and analytics
-
-Docker + CI/CD deployment
 
 Redis + message queues for large-scale workloads
 

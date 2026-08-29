@@ -3,6 +3,8 @@ import cors from "cors";
 import dotenv from "dotenv";
 import express from "express";
 import { connectDb } from "./config/db.js";
+import { getClientOrigins, validateEnv } from "./config/env.js";
+import { rateLimit } from "./middleware/rateLimit.js";
 import attendanceRoutes from "./routes/attendance.js";
 import adminRoutes from "./routes/admin.js";
 import authRoutes from "./routes/auth.js";
@@ -14,14 +16,25 @@ import shiftRoutes from "./routes/shifts.js";
 import workerRoutes from "./routes/workers.js";
 
 dotenv.config();
+validateEnv();
 
 const app = express();
 const port = process.env.PORT || 4000;
+const clientOrigins = getClientOrigins();
+
+app.set("trust proxy", 1);
 
 app.use(cors({
-  origin: process.env.CLIENT_ORIGIN || "http://localhost:3000",
+  origin(origin, callback) {
+    if (!origin || clientOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+    callback(null, false);
+  },
   credentials: true
 }));
+app.use(rateLimit({ windowMs: 60_000, max: 120 }));
 app.use(express.json({ limit: "1mb" }));
 app.use(cookieParser());
 
@@ -29,7 +42,7 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", rateLimit({ windowMs: 15 * 60_000, max: 30, keyPrefix: "auth" }), authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/communities", communityRoutes);
 app.use("/api/shifts", shiftRoutes);
@@ -73,8 +86,8 @@ async function ensureAdminUser() {
 connectDb()
   .then(async () => {
     await ensureAdminUser();
-    app.listen(port, () => {
-      console.log(`FlexyWork API listening on http://127.0.0.1:${port}`);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`FlexyWork API listening on port ${port}`);
     });
   })
   .catch((error) => {
