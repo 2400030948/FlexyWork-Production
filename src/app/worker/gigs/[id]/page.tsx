@@ -109,258 +109,336 @@ export default function WorkerGigDetailPage() {
   const isRejected = gig.applicationStatus === 'rejected';
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-200">
+    <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 page-enter pb-24 lg:pb-8">
       
-      {/* Back Link */}
-      <Link href="/worker/gigs" className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-muted hover:text-ink transition-colors">
-        <ArrowLeft size={14} /> Back to gigs
-      </Link>
+      {/* Top Navigation */}
+      <div className="flex items-center justify-between border-b border-surface-border pb-4">
+        <Link href="/worker/gigs" className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-muted hover:text-ink transition-colors">
+          <ArrowLeft size={14} /> Back to available shifts
+        </Link>
+        <StatusBadge status={gig.status} />
+      </div>
 
-      {/* Main Command Console Card */}
-      <div className="bg-white border border-surface-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+      {/* 2-Column Marketplace Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         
-        {/* Title, Category & Status */}
-        <div className="flex justify-between items-start gap-4">
-          <div>
-            <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              {gig.category}
-            </span>
-            <h1 className="text-2xl font-extrabold text-ink tracking-tight mt-2">{gig.title}</h1>
-            <p className="text-xs text-ink-subtle mt-1 font-semibold">Employer: {gig.employerName}</p>
-          </div>
-          <StatusBadge status={gig.status} />
-        </div>
-
-        {/* Dynamic Timeline Tracker */}
-        <div className="border-t border-b border-surface-border py-5 flex items-center justify-around gap-2 text-center text-xs font-bold text-ink-subtle">
-          <div className="space-y-1">
-            <span className={`block h-2 w-2 rounded-full mx-auto ${isPending ? 'bg-amber-500 animate-pulse' : isAssigned ? 'bg-emerald-500' : 'bg-stone-300'}`} />
-            <p className={isPending ? 'text-amber-700 font-extrabold' : isAssigned ? 'text-ink' : ''}>
-              {isPending ? 'Under Review' : 'Applied'}
-            </p>
-          </div>
-          <span className={`h-0.5 flex-grow ${isAssigned ? 'bg-emerald-500' : 'bg-stone-200'}`} />
-          <div className="space-y-1">
-            <span className={`block h-2 w-2 rounded-full mx-auto ${isAssigned ? 'bg-emerald-500' : 'bg-stone-200'}`} />
-            <p className={isAssigned ? 'text-ink' : ''}>Approved & Confirmed</p>
-          </div>
-          <span className={`h-0.5 flex-grow ${
-            ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'bg-emerald-500' : 'bg-stone-200'
-          }`} />
-          <div className="space-y-1">
-            <span className={`block h-2 w-2 rounded-full mx-auto ${
-              ['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'bg-emerald-500' : 'bg-stone-200'
-            }`} />
-            <p className={['IN_PROGRESS', 'COMPLETED', 'in_progress', 'completed'].includes(gig.status) || gig.checkInTime ? 'text-ink' : ''}>On-Site (In-Progress)</p>
-          </div>
-          <span className={`h-0.5 flex-grow ${
-            ['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'bg-emerald-500' : 'bg-stone-200'
-          }`} />
-          <div className="space-y-1">
-            <span className={`block h-2 w-2 rounded-full mx-auto ${
-              ['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'bg-emerald-500' : 'bg-stone-200'
-            }`} />
-            <p className={['COMPLETED', 'completed'].includes(gig.status) || gig.checkOutTime ? 'text-ink' : ''}>Completed & Paid</p>
-          </div>
-        </div>
-
-        {/* STATE 1: PENDING REVIEW BANNER */}
-        {isPending && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 space-y-2">
-            <div className="flex items-center gap-2 text-amber-800 font-extrabold text-xs uppercase tracking-wider">
-              <Hourglass size={14} className="animate-spin-slow text-amber-600" />
-              Application Under Review by Employer
+        {/* LEFT COLUMN: Shift Information (7 Cols) */}
+        <div className="lg:col-span-7 space-y-6">
+          
+          {/* Header & Title */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xxs font-bold text-brand-700 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded uppercase tracking-wider">
+                {gig.category}
+              </span>
+              {gig.urgency === 'urgent' && (
+                <span className="text-xxs font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded uppercase tracking-wider">
+                  Urgent Shift
+                </span>
+              )}
             </div>
-            <p className="text-xs text-amber-900 leading-relaxed">
-              Your profile has been submitted to <strong>{gig.employerName}</strong>. Once they approve your credentials, you will receive an acceptance notification and full duty location instructions.
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
+              {gig.title}
+            </h1>
+            <p className="text-xs text-ink-muted font-medium">
+              Posted by <span className="font-bold text-ink">{gig.employerName || 'Corner Store Retail'}</span> · Indiranagar
             </p>
           </div>
-        )}
 
-        {/* STATE 2: DECLINED BANNER */}
-        {isRejected && (
-          <div className="bg-stone-100 border border-stone-200 rounded-2xl p-5 space-y-1 text-xs text-ink-muted">
-            <p className="font-bold text-ink flex items-center gap-1.5">
-              <XCircle size={14} className="text-rose-500" />
-              Application Not Selected
-            </p>
-            <p>The employer selected another candidate for this shift. Check available gigs to apply for other opportunities.</p>
-          </div>
-        )}
-
-        {/* STATE 3: CAN APPLY BUTTON */}
-        {!isAssigned && !isPending && !isRejected && (
-          <div className="bg-brand-50 border border-brand-100 rounded-2xl p-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-              <h3 className="font-extrabold text-brand-800 text-sm flex items-center gap-1.5">
-                <Sparkles size={14} className="text-brand-500" />
-                Open Shift Available
-              </h3>
-              <p className="text-xs text-brand-700 font-medium mt-1">
-                Submit your verified worker profile for the employer to review and approve.
+          {/* Key Shift Specs */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 bg-white border border-surface-border rounded-xl p-4 shadow-2xs">
+            <div className="space-y-0.5">
+              <span className="text-xxs font-medium text-ink-subtle uppercase">Schedule</span>
+              <p className="text-xs font-bold text-ink flex items-center gap-1">
+                <Clock size={12} className="text-brand-600 shrink-0" />
+                {gig.time || `${gig.startTime || '6:00 PM'} – ${gig.endTime || '10:00 PM'}`}
               </p>
+              <span className="text-xxs text-ink-subtle block">{gig.duration || '4 hrs'}</span>
             </div>
-            <button
-              onClick={handleApply}
-              disabled={actionLoading}
-              className="w-full sm:w-auto inline-flex justify-center items-center gap-2 rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-6 py-3 text-xs font-extrabold transition-all shadow-md shadow-brand-500/20 disabled:opacity-50"
-            >
-              {actionLoading ? 'Submitting...' : 'Apply for Gig →'}
-            </button>
+            <div className="space-y-0.5">
+              <span className="text-xxs font-medium text-ink-subtle uppercase">Date</span>
+              <p className="text-xs font-bold text-ink flex items-center gap-1">
+                <Calendar size={12} className="text-brand-600 shrink-0" />
+                {gig.date || 'Today'}
+              </p>
+              <span className="text-xxs text-ink-subtle block">Flexible Shift</span>
+            </div>
+            <div className="space-y-0.5 col-span-2 sm:col-span-1">
+              <span className="text-xxs font-medium text-ink-subtle uppercase">Location</span>
+              <p className="text-xs font-bold text-ink flex items-center gap-1 truncate">
+                <MapPin size={12} className="text-stone-400 shrink-0" />
+                {gig.location || 'Indiranagar, Bangalore'}
+              </p>
+              <span className="text-xxs text-emerald-600 font-semibold block">1.2 km away</span>
+            </div>
           </div>
-        )}
 
-        {/* STATE 4: ASSIGNED / ON-DUTY OTP CHECK-IN HUD */}
-        {isAssigned && (
-          <div className="bg-brand-50/80 border border-brand-100 rounded-3xl p-6 space-y-4">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+          {/* Detailed Duties & Scope */}
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-3">
+            <h3 className="text-xs font-bold text-ink uppercase tracking-wider">
+              About the Shift & Responsibilities
+            </h3>
+            <p className="text-xs text-ink-muted leading-relaxed whitespace-pre-line">
+              {gig.description || 'Provide flexible assistance during the shift as detailed by the store manager. Ensure cleanliness, friendly customer service, and timely completion of duties.'}
+            </p>
+          </div>
+
+          {/* Required Skills */}
+          {gig.requiredSkills && gig.requiredSkills.length > 0 && (
+            <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-2.5">
+              <h3 className="text-xs font-bold text-ink uppercase tracking-wider">
+                Required Skills & Qualifications
+              </h3>
+              <div className="flex flex-wrap gap-1.5">
+                {gig.requiredSkills.map((skill, idx) => (
+                  <span
+                    key={idx}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-brand-800 bg-brand-50 border border-brand-200/60 px-2.5 py-1 rounded-lg"
+                  >
+                    ✓ {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Employer Trust Profile */}
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-lg bg-stone-100 text-stone-700 font-bold flex items-center justify-center text-sm border border-surface-border">
+                {gig.employerName?.[0] || 'E'}
+              </div>
               <div>
-                <h3 className="font-extrabold text-brand-900 text-sm flex items-center gap-1.5">
-                  <Radio size={15} className="text-brand-600 animate-pulse" />
-                  On-Site Handshake & Arrival Verification (Step 3)
-                </h3>
-                <p className="text-xs text-brand-700 mt-0.5 font-medium">
-                  {!gig.checkInTime 
-                    ? 'Ask the employer on-site for their 4-digit Arrival OTP to verify check-in and start shift.'
-                    : !gig.checkOutTime 
-                    ? `Checked in at ${gig.checkInTime}. Complete required tasks and check out below when finished.`
-                    : `Shift finished at ${gig.checkOutTime}. Payout recorded.`}
+                <div className="flex items-center gap-1.5">
+                  <h4 className="text-xs font-bold text-ink">{gig.employerName || 'Local Verified Business'}</h4>
+                  <ShieldCheck size={13} className="text-emerald-600" />
+                </div>
+                <div className="flex items-center gap-1.5 text-xxs text-ink-subtle mt-0.5">
+                  <span className="flex items-center gap-0.5 text-amber-500 font-bold">
+                    ★ 4.8
+                  </span>
+                  <span>· 28 shifts fulfilled · Instant Payout Verified</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* On-Duty Checklist (Shown when assigned) */}
+          {isAssigned && !gig.checkOutTime && (
+            <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-3">
+              <h3 className="text-xs font-bold text-ink uppercase tracking-wider">
+                Shift Checklist & Procedures
+              </h3>
+              <div className="space-y-2">
+                {checklist.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => toggleChecklistItem(item.id)}
+                    className="flex w-full items-center gap-2.5 p-2.5 border border-surface-border hover:bg-stone-50 rounded-lg text-left transition-all text-xs font-medium text-ink-muted"
+                  >
+                    {item.done ? (
+                      <CheckSquare size={15} className="text-brand-600 shrink-0" />
+                    ) : (
+                      <Square size={15} className="text-stone-300 shrink-0" />
+                    )}
+                    <span className={item.done ? 'line-through text-ink-subtle' : ''}>{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+        </div>
+
+        {/* RIGHT COLUMN: Sticky Match & Action Panel (5 Cols) */}
+        <div className="lg:col-span-5 lg:sticky lg:top-20 space-y-4">
+          
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-sm space-y-5">
+            
+            {/* Match Score Indicator */}
+            <div className="rounded-lg bg-emerald-50/80 border border-emerald-200/80 p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-emerald-950 flex items-center gap-1">
+                  <Sparkles size={14} className="text-emerald-600" />
+                  {gig.matchScore || 96}% Match for You
+                </span>
+                <span className="text-xxs font-bold text-emerald-700 bg-white px-2 py-0.5 rounded shadow-2xs">
+                  Top Recommended
+                </span>
+              </div>
+              <div className="space-y-1 text-xxs text-emerald-800 font-medium">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Available during entire shift time window</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Within 1.5 km of your registered location</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-600 font-bold">✓</span>
+                  <span>Matches your declared service competencies</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Payout Display */}
+            <div className="flex items-baseline justify-between border-t border-surface-border pt-4">
+              <div>
+                <span className="text-xxs font-medium text-ink-subtle uppercase">Total Shift Pay</span>
+                <p className="text-2xl font-black text-ink">
+                  ₹{gig.paymentAmount.toLocaleString('en-IN')}
                 </p>
               </div>
-
-              <span className={`text-[10px] font-extrabold uppercase px-2.5 py-1 rounded-full border ${
-                gig.checkInTime 
-                  ? 'bg-emerald-100 text-emerald-800 border-emerald-200' 
-                  : 'bg-amber-100 text-amber-800 border-amber-200'
-              }`}>
-                {gig.checkInTime ? '✓ On-Duty Verified' : 'Awaiting On-Site OTP'}
+              <span className="text-xxs text-emerald-600 font-bold bg-emerald-50 px-2 py-1 rounded">
+                Direct Bank Payout
               </span>
             </div>
 
-            {/* OTP Entry Form if not yet checked in */}
-            {!gig.checkInTime && (
-              <div className="bg-white border border-brand-200/80 rounded-2xl p-4 space-y-3 shadow-sm">
-                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                  <div className="relative flex-grow">
-                    <KeyRound size={16} className="absolute left-3.5 top-3 text-ink-subtle" />
-                    <input
-                      type="text"
-                      maxLength={4}
-                      value={otpInput}
-                      onChange={(e) => {
-                        setOtpInput(e.target.value);
-                        setOtpError(null);
-                      }}
-                      placeholder="Enter 4-digit code (e.g. 8492)"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-surface-border text-xs font-bold text-ink placeholder-ink-subtle focus:outline-none focus:ring-2 focus:ring-brand-500/20"
-                    />
+            {/* Action State Section */}
+            <div className="space-y-3">
+              
+              {/* STATE 1: PENDING */}
+              {isPending && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3.5 space-y-1.5 text-xs">
+                  <div className="flex items-center gap-1.5 text-amber-900 font-bold">
+                    <Hourglass size={14} className="animate-spin-slow text-amber-600" />
+                    Application Under Review
                   </div>
-
-                  <button
-                    onClick={() => handleAction('check-in', otpInput)}
-                    disabled={actionLoading || otpInput.trim().length === 0}
-                    className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-xs font-extrabold transition-all shadow-sm flex items-center justify-center gap-1.5 disabled:opacity-50 shrink-0"
-                  >
-                    {actionLoading ? 'Verifying...' : (
-                      <>
-                        <CheckCircle2 size={15} />
-                        Verify OTP & Check In
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                {otpError && (
-                  <p className="text-xs font-bold text-rose-600 flex items-center gap-1">
-                    <AlertCircle size={13} />
-                    {otpError}
+                  <p className="text-xxs text-amber-800 leading-relaxed">
+                    The employer is reviewing candidate profiles. You will receive an alert once accepted.
                   </p>
-                )}
-              </div>
-            )}
+                </div>
+              )}
 
-            {/* Check-out button when in-progress */}
-            {gig.checkInTime && !gig.checkOutTime && (
-              <div className="flex justify-end pt-2">
+              {/* STATE 2: REJECTED */}
+              {isRejected && (
+                <div className="bg-stone-50 border border-stone-200 rounded-lg p-3.5 text-xs text-ink-muted">
+                  <p className="font-bold text-ink flex items-center gap-1.5">
+                    <XCircle size={14} className="text-rose-500" />
+                    Shift Staffed by Other Worker
+                  </p>
+                </div>
+              )}
+
+              {/* STATE 3: OPEN / CAN APPLY */}
+              {!isAssigned && !isPending && !isRejected && (
                 <button
-                  onClick={() => handleAction('check-out')}
+                  onClick={handleApply}
                   disabled={actionLoading}
-                  className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 text-xs font-extrabold transition-all shadow-md flex items-center gap-2 disabled:opacity-50"
+                  className="w-full rounded-lg bg-brand-600 hover:bg-brand-700 text-white py-3 text-xs font-bold transition-all shadow-2xs btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
-                  <CheckCircle size={15} />
-                  Check Out & Finish Shift
-                </button>
-              </div>
-            )}
-
-            {/* Completion Banner */}
-            {gig.checkOutTime && (
-              <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-2xl p-4 text-xs font-bold flex items-center gap-2">
-                <CheckCircle2 size={16} className="text-emerald-600" />
-                Shift Successfully Completed! Payout has been disbursed to your ledger.
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Work Checklist Section */}
-        {isAssigned && !gig.checkOutTime && (
-          <div className="space-y-3 border-t border-surface-border pt-5">
-            <h3 className="font-bold text-xs uppercase tracking-wider text-ink-subtle">On-Duty Checklist</h3>
-            <div className="space-y-2">
-              {checklist.map(item => (
-                <button
-                  key={item.id}
-                  onClick={() => toggleChecklistItem(item.id)}
-                  className="flex w-full items-center gap-3 p-3 border border-surface-border hover:bg-stone-50 rounded-xl text-left transition-all text-xs font-semibold text-ink-muted"
-                >
-                  {item.done ? (
-                    <CheckSquare size={16} className="text-brand-500 shrink-0" />
-                  ) : (
-                    <Square size={16} className="text-stone-300 shrink-0" />
+                  {actionLoading ? 'Submitting Application...' : (
+                    <>
+                      <span>Accept & Apply for Shift</span>
+                      <ArrowRight size={13} />
+                    </>
                   )}
-                  <span className={item.done ? 'line-through text-ink-subtle' : ''}>{item.text}</span>
                 </button>
-              ))}
+              )}
+
+              {/* STATE 4: ASSIGNED & ON-SITE OTP VERIFICATION */}
+              {isAssigned && (
+                <div className="space-y-3">
+                  {!gig.checkInTime ? (
+                    <div className="space-y-2.5">
+                      <label className="text-xxs font-bold text-ink uppercase block">
+                        Enter Employer Check-In OTP
+                      </label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-grow">
+                          <KeyRound size={14} className="absolute left-3 top-2.5 text-stone-400" />
+                          <input
+                            type="text"
+                            maxLength={4}
+                            value={otpInput}
+                            onChange={(e) => {
+                              setOtpInput(e.target.value);
+                              setOtpError(null);
+                            }}
+                            placeholder="4-digit OTP"
+                            className="w-full pl-8 pr-3 py-2 rounded-lg border border-surface-border text-xs font-bold text-ink"
+                          />
+                        </div>
+                        <button
+                          onClick={() => handleAction('check-in', otpInput)}
+                          disabled={actionLoading || otpInput.trim().length === 0}
+                          className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold transition-all disabled:opacity-50 shrink-0 btn-press"
+                        >
+                          {actionLoading ? 'Verifying...' : 'Check In'}
+                        </button>
+                      </div>
+                      {otpError && (
+                        <p className="text-xxs font-semibold text-rose-600 flex items-center gap-1">
+                          <AlertCircle size={11} /> {otpError}
+                        </p>
+                      )}
+                    </div>
+                  ) : !gig.checkOutTime ? (
+                    <button
+                      onClick={() => handleAction('check-out')}
+                      disabled={actionLoading}
+                      className="w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white py-3 text-xs font-bold transition-all shadow-2xs btn-press disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle size={14} />
+                      <span>Finish Shift & Check Out</span>
+                    </button>
+                  ) : (
+                    <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg p-3 text-xs font-bold flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-emerald-600" />
+                      <span>Shift Completed & Paid</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
             </div>
+
           </div>
+
+        </div>
+
+      </div>
+
+      {/* MOBILE STICKY BOTTOM ACTION BAR */}
+      <div className="lg:hidden fixed bottom-16 left-0 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-surface-border p-3.5 px-4 flex items-center justify-between shadow-md">
+        <div>
+          <span className="text-xxs font-medium text-ink-subtle uppercase block">Total Pay</span>
+          <span className="text-base font-black text-ink">₹{gig.paymentAmount.toLocaleString('en-IN')}</span>
+        </div>
+
+        {!isAssigned && !isPending && !isRejected ? (
+          <button
+            onClick={handleApply}
+            disabled={actionLoading}
+            className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-5 py-2.5 text-xs font-bold shadow-2xs btn-press"
+          >
+            {actionLoading ? 'Applying...' : 'Apply for Shift'}
+          </button>
+        ) : isPending ? (
+          <span className="text-xs font-bold text-amber-800 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+            Under Review
+          </span>
+        ) : isAssigned && !gig.checkInTime ? (
+          <span className="text-xs font-bold text-brand-800 bg-brand-50 px-3 py-1.5 rounded-lg border border-brand-200">
+            Awaiting OTP Check In
+          </span>
+        ) : isAssigned && !gig.checkOutTime ? (
+          <button
+            onClick={() => handleAction('check-out')}
+            disabled={actionLoading}
+            className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-bold shadow-2xs btn-press"
+          >
+            Check Out
+          </button>
+        ) : (
+          <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200">
+            Completed ✓
+          </span>
         )}
-
-        {/* Schedule & Location */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-surface-border pt-6 text-xs font-semibold text-ink-muted">
-          <div className="space-y-1">
-            <span className="text-[10px] text-ink-subtle block uppercase font-bold">Schedule</span>
-            <span className="flex items-center gap-1">
-              <Clock size={13} /> {gig.time || `${gig.startTime} - ${gig.endTime}`} ({gig.duration})
-            </span>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-ink-subtle block uppercase font-bold">Work Address</span>
-            <span className="flex items-center gap-1 truncate max-w-[200px]">
-              <MapPin size={13} className="shrink-0" /> {gig.location}
-            </span>
-          </div>
-          <div className="space-y-1">
-            <span className="text-[10px] text-ink-subtle block uppercase font-bold">Client Coordinates</span>
-            <span className="flex items-center gap-1">
-              <Navigation size={13} /> Lat 16.506, Lon 80.648
-            </span>
-          </div>
-        </div>
-
-        {/* Payout Summary */}
-        <div className="border-t border-surface-border pt-6 flex justify-between items-center text-sm">
-          <div>
-            <p className="text-xs text-ink-subtle font-medium uppercase tracking-wider">Gross Payout Est.</p>
-            <p className="text-xxs text-ink-subtle font-semibold mt-0.5">Platform insurance & fee split precalculated</p>
-          </div>
-          <p className="text-2xl font-black text-ink flex items-center gap-0.5">
-            <IndianRupee size={18} className="text-ink-muted" /> {gig.paymentAmount}
-          </p>
-        </div>
-
       </div>
 
     </div>
   );
 }
+

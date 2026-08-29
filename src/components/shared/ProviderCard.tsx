@@ -9,7 +9,7 @@ interface ProviderCardProps {
 
 export default function ProviderCard({ provider }: ProviderCardProps) {
   return (
-    <div className="flex flex-col h-full rounded-xl border border-surface-border bg-white p-5 shadow-2xs hover:border-stone-300 hover:shadow-xs transition-all duration-200">
+    <div className="flex flex-col h-full rounded-xl border border-surface-border bg-white p-5 shadow-2xs hover:border-stone-300 hover:shadow-xs card-interactive transition-all">
       
       {/* Top Banner Details */}
       <div className="flex items-start justify-between gap-3">

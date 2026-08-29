@@ -176,40 +176,37 @@ function WorkerGigsContent() {
       )}
 
       {/* Title Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-surface-border p-6 rounded-3xl shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-surface-border pb-6">
         <div>
-          <div className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-3 py-1 rounded-full mb-1.5">
-            <Briefcase size={13} /> Worker Opportunities & Applications
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-ink tracking-tight">
-            Find & Manage Gigs
+          <h1 className="text-2xl font-bold text-ink tracking-tight">
+            Find Work That Fits Your Schedule
           </h1>
-          <p className="text-xs text-ink-muted mt-1">
-            Apply to employer shifts, track your application review status, and manage on-duty check-ins.
+          <p className="text-xs text-ink-muted mt-0.5 font-medium">
+            Browse open shifts in your neighborhood, apply with 1 tap, and track on-duty check-ins.
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={fetchAllGigsData}
-            className="p-3 bg-white border border-surface-border hover:bg-stone-50 text-ink-muted hover:text-ink rounded-2xl transition-all shadow-sm"
+            className="p-2.5 bg-white border border-surface-border hover:bg-stone-50 text-ink-muted hover:text-ink rounded-lg transition-all shadow-2xs btn-press"
             title="Refresh Live Gigs"
           >
-            <RefreshCw size={16} />
+            <RefreshCw size={14} />
           </button>
           <Link
             href="/worker"
-            className="rounded-2xl border border-surface-border bg-white hover:bg-stone-50 text-ink px-4 py-2.5 text-xs font-bold transition-all shadow-sm"
+            className="rounded-lg border border-surface-border bg-white hover:bg-stone-50 text-ink px-3.5 py-2 text-xs font-semibold transition-all shadow-2xs btn-press"
           >
-            Command Center →
+            ← Command Center
           </Link>
         </div>
       </div>
 
       {/* Main Tabs Navigation */}
-      <div className="flex border-b border-surface-border gap-2 sm:gap-6 overflow-x-auto pb-0.5">
+      <div className="flex border-b border-surface-border gap-2 sm:gap-6 overflow-x-auto pb-0.5 text-xs">
         {[
-          { id: 'available', label: 'Explore Available Gigs', count: filteredAvailableGigs.length },
+          { id: 'available', label: 'Explore Available Shifts', count: filteredAvailableGigs.length },
           { id: 'applications', label: 'My Applications', count: appliedGigs.length },
           { id: 'confirmed', label: 'Confirmed & On-Duty', count: confirmedGigs.length },
           { id: 'completed', label: 'Completed History', count: completedGigs.length },
@@ -217,15 +214,15 @@ function WorkerGigsContent() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`pb-3 text-xs sm:text-sm font-extrabold border-b-2 transition-all shrink-0 flex items-center gap-2 ${
+            className={`pb-3 text-xs font-bold border-b-2 transition-all shrink-0 flex items-center gap-1.5 btn-press ${
               activeTab === tab.id
-                ? 'border-brand-500 text-brand-600'
-                : 'border-transparent text-ink-subtle hover:text-ink-muted'
+                ? 'border-brand-600 text-brand-700'
+                : 'border-transparent text-ink-subtle hover:text-ink'
             }`}
           >
             {tab.label}
-            <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full ${
-              activeTab === tab.id ? 'bg-brand-100 text-brand-800' : 'bg-stone-100 text-ink-subtle'
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+              activeTab === tab.id ? 'bg-brand-50 text-brand-800 border border-brand-200/80' : 'bg-stone-100 text-ink-subtle'
             }`}>
               {tab.count}
             </span>
@@ -309,18 +306,18 @@ function WorkerGigsContent() {
 
           </div>
 
-          {/* Available Gigs Feed */}
+          {/* Available Shifts Feed */}
           {loading ? (
-            <div className="space-y-4 animate-pulse">
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-44 bg-white border border-surface-border rounded-3xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="h-48 bg-white border border-surface-border rounded-xl" />
               ))}
             </div>
           ) : filteredAvailableGigs.length === 0 ? (
             <EmptyState
               icon={Briefcase}
-              title="No matching open gigs found"
-              description="Employers frequently post new shifts throughout the day. Try clearing your filters or check back shortly."
+              title="No matching open shifts found"
+              description="Local employers post shifts regularly throughout the day. Try adjusting your search filters or check back shortly."
               actionLabel="Clear All Search Filters"
               onAction={() => {
                 setSearchQuery('');
@@ -330,148 +327,15 @@ function WorkerGigsContent() {
               }}
             />
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {filteredAvailableGigs.map((gig) => {
-                const filledCount = gig.assignedWorkerIds?.length || gig.filledCount || 0;
-                const requiredCount = gig.workersRequired || 1;
-                const spotsLeft = Math.max(0, requiredCount - filledCount);
-                const appStatus = getGigApplicationStatus(gig);
-
-                return (
-                  <div
-                    key={gig.id}
-                    className="flex flex-col justify-between rounded-3xl border border-surface-border bg-white p-6 shadow-sm transition-all duration-200 hover:shadow-md hover:border-brand-300 space-y-4"
-                  >
-                    {/* Top Row: Category & Urgency */}
-                    <div className="flex items-center justify-between border-b border-surface-border pb-3">
-                      <span className="text-xs font-bold text-brand-600 bg-brand-50 px-3 py-0.5 rounded-full uppercase tracking-wider">
-                        {gig.category}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {gig.urgency === 'urgent' && (
-                          <span className="bg-rose-50 text-rose-700 border border-rose-100 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider animate-pulse">
-                            ⚡ Urgent
-                          </span>
-                        )}
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
-                          {spotsLeft} spot{spotsLeft !== 1 ? 's' : ''} left
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Title, Employer, and Scope */}
-                    <div className="space-y-1.5 flex-grow">
-                      <h3 className="font-extrabold text-ink text-base hover:text-brand-600 transition-colors">
-                        <Link href={`/worker/gigs/${gig.id}`}>
-                          {gig.title}
-                        </Link>
-                      </h3>
-                      <p className="text-[11px] font-semibold text-brand-700">
-                        Posted by {gig.employerName || 'Local Employer'}
-                      </p>
-                      <p className="text-xs text-ink-muted line-clamp-2 leading-relaxed">
-                        {gig.description}
-                      </p>
-                    </div>
-
-                    {/* Skills Chips */}
-                    {gig.requiredSkills && gig.requiredSkills.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {gig.requiredSkills.slice(0, 3).map(skill => (
-                          <span key={skill} className="text-[10px] font-semibold bg-stone-100 text-ink-muted px-2 py-0.5 rounded-md">
-                            {skill}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Meta Details */}
-                    <div className="grid grid-cols-2 gap-2 text-xs text-ink-muted font-medium bg-stone-50/50 p-3 rounded-2xl border border-surface-border">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar size={13} className="text-ink-subtle shrink-0" />
-                        <span>{gig.date}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Clock size={13} className="text-ink-subtle shrink-0" />
-                        <span>{gig.time || `${gig.startTime} - ${gig.endTime}`} ({gig.duration})</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 col-span-2">
-                        <MapPin size={13} className="text-ink-subtle shrink-0" />
-                        <span className="truncate">{gig.location}</span>
-                      </div>
-                    </div>
-
-                    {/* AI Score Badge if available */}
-                    {gig.matchScore && (
-                      <div className="flex items-center gap-1.5 rounded-xl bg-emerald-50/60 border border-emerald-100 p-2 text-xs text-emerald-800 font-semibold">
-                        <Sparkles size={13} className="text-emerald-600 shrink-0" />
-                        <span>{gig.matchScore}% Match for your profile</span>
-                      </div>
-                    )}
-
-                    {/* Footer: Payout & Dynamic Apply / Approval Status CTA */}
-                    <div className="flex items-center justify-between border-t border-surface-border pt-4 mt-2">
-                      <div>
-                        <p className="text-xl font-black text-ink flex items-center gap-0.5">
-                          <IndianRupee size={16} className="text-ink-muted" />
-                          {gig.paymentAmount}
-                        </p>
-                        <p className="text-[10px] text-ink-subtle font-medium uppercase tracking-wider">
-                          {gig.paymentType === 'hourly' ? 'Hourly Rate' : 'Fixed Payout'}
-                        </p>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <Link
-                          href={`/worker/gigs/${gig.id}`}
-                          className="rounded-xl border border-surface-border bg-white hover:bg-stone-50 text-ink px-3 py-2 text-xs font-bold transition-all shadow-xs"
-                        >
-                          Details
-                        </Link>
-
-                        {/* State 1: Accepted by Employer */}
-                        {appStatus === 'accepted' ? (
-                          <button
-                            onClick={() => setActiveTab('confirmed')}
-                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5"
-                          >
-                            <CheckCircle2 size={14} />
-                            Approved (Go to Duty)
-                          </button>
-                        ) : appStatus === 'pending' ? (
-                          /* State 2: Under Employer Review */
-                          <span className="rounded-xl bg-amber-50 text-amber-800 border border-amber-200 px-3.5 py-2 text-xs font-bold flex items-center gap-1.5 shadow-xs">
-                            <Hourglass size={13} className="animate-spin-slow text-amber-600" />
-                            Under Review
-                          </span>
-                        ) : appStatus === 'rejected' ? (
-                          /* State 3: Declined */
-                          <span className="rounded-xl bg-stone-100 text-ink-muted px-3 py-2 text-xs font-semibold">
-                            Not Selected
-                          </span>
-                        ) : (
-                          /* State 4: Can Apply */
-                          <button
-                            onClick={(e) => handleApply(e, gig.id, gig.title)}
-                            disabled={actionLoading === gig.id || spotsLeft === 0}
-                            className="rounded-xl bg-brand-500 hover:bg-brand-600 text-white px-4 py-2 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
-                          >
-                            {actionLoading === gig.id ? (
-                              <span className="animate-pulse">Submitting...</span>
-                            ) : (
-                              <>
-                                <ArrowRight size={14} />
-                                Apply for Gig
-                              </>
-                            )}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                  </div>
-                );
-              })}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {filteredAvailableGigs.map((gig) => (
+                <GigCard
+                  key={gig.id}
+                  gig={gig}
+                  viewMode="worker"
+                  onActionComplete={fetchAllGigsData}
+                />
+              ))}
             </div>
           )}
 
@@ -481,30 +345,30 @@ function WorkerGigsContent() {
       {/* TAB 2: MY APPLICATIONS & EMPLOYER REVIEWS */}
       {activeTab === 'applications' && (
         <div className="space-y-6">
-          <div className="bg-brand-50/60 border border-brand-100 rounded-3xl p-5 flex items-center gap-3 text-xs text-brand-900">
-            <Bell size={20} className="text-brand-600 shrink-0" />
+          <div className="bg-brand-50/70 border border-brand-200/80 rounded-xl p-4 flex items-center gap-3 text-xs text-brand-950">
+            <Bell size={18} className="text-brand-600 shrink-0" />
             <div>
-              <p className="font-bold">Two-Way Verification & Review</p>
-              <p className="text-ink-muted mt-0.5">
-                When you apply, the employer reviews your verified profile, skills, and reliability rating. Once they approve, the shift moves immediately to your Confirmed Shifts tab for GPS check-in.
+              <p className="font-bold">Two-Way Matching & Employer Review</p>
+              <p className="text-ink-muted text-xxs mt-0.5 leading-relaxed">
+                When you apply, the employer reviews your verified profile, skills, and reliability score. Once approved, the shift moves immediately to Confirmed Shifts for check-in.
               </p>
             </div>
           </div>
 
           {loading ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-36 bg-white border rounded-3xl" />
+            <div className="space-y-3 animate-pulse">
+              <div className="h-28 bg-white border rounded-xl" />
             </div>
           ) : appliedGigs.length === 0 ? (
             <EmptyState
               icon={Hourglass}
-              title="No pending applications"
+              title="No active applications"
               description="You haven't applied for any shifts yet. Explore open employer listings to submit your profile for review."
-              actionLabel="Explore Available Gigs"
+              actionLabel="Explore Available Shifts"
               onAction={() => setActiveTab('available')}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-4">
+            <div className="grid grid-cols-1 gap-3">
               {appliedGigs.map(g => {
                 const isAccepted = g.applicationStatus === 'accepted' || g.assignedWorkerIds?.includes(currentUser?.id || '');
                 const isRejected = g.applicationStatus === 'rejected';
@@ -513,36 +377,36 @@ function WorkerGigsContent() {
                 return (
                   <div
                     key={g.id}
-                    className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-6"
+                    className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-stone-300 transition-all card-interactive"
                   >
-                    <div className="space-y-2 flex-grow">
+                    <div className="space-y-1.5 flex-grow">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-bold text-brand-600 bg-brand-50 px-2.5 py-0.5 rounded-full uppercase">
+                        <span className="text-xxs font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded uppercase">
                           {g.category}
                         </span>
                         
                         {/* Status Badges */}
                         {isPending && (
-                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                            <Hourglass size={12} className="animate-spin-slow text-amber-600" />
-                            Pending Employer Review
+                          <span className="inline-flex items-center gap-1 bg-amber-50 text-amber-800 border border-amber-200/80 px-2 py-0.5 rounded text-xxs font-bold uppercase">
+                            <Hourglass size={11} className="animate-spin-slow text-amber-600" />
+                            Under Employer Review
                           </span>
                         )}
                         {isAccepted && (
-                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                            <CheckCircle2 size={12} className="text-emerald-600" />
-                            Employer Approved You! 🎉
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded text-xxs font-bold uppercase">
+                            <CheckCircle2 size={11} className="text-emerald-600" />
+                            Approved by Employer
                           </span>
                         )}
                         {isRejected && (
-                          <span className="inline-flex items-center gap-1 bg-stone-100 text-ink-subtle px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase">
-                            <XCircle size={12} className="text-stone-400" />
+                          <span className="inline-flex items-center gap-1 bg-stone-100 text-ink-subtle px-2 py-0.5 rounded text-xxs font-bold uppercase">
+                            <XCircle size={11} className="text-stone-400" />
                             Not Selected
                           </span>
                         )}
                       </div>
 
-                      <h3 className="text-base font-extrabold text-ink">
+                      <h3 className="text-sm font-bold text-ink">
                         <Link href={`/worker/gigs/${g.id}`} className="hover:text-brand-600 transition-colors">
                           {g.title}
                         </Link>
@@ -551,35 +415,28 @@ function WorkerGigsContent() {
                       <p className="text-xs text-ink-muted">
                         Employer: <strong className="text-ink">{g.employerName}</strong> · Schedule: <strong className="text-ink">{g.date} ({g.time || `${g.startTime} - ${g.endTime}`})</strong> · Location: <strong className="text-ink">{g.location}</strong>
                       </p>
-
-                      {/* Informational Message */}
-                      <p className="text-[11px] font-medium text-ink-subtle">
-                        {isPending && "⏳ Your application is active. The employer was notified to review your credentials."}
-                        {isAccepted && "✅ Great news! The employer accepted your application. You can now access full duty instructions and GPS check-in."}
-                        {isRejected && "Employer chose another candidate for this shift. Keep applying for other open opportunities."}
-                      </p>
                     </div>
 
-                    <div className="flex items-center gap-4 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-4 md:pt-0 border-surface-border">
+                    <div className="flex items-center gap-4 shrink-0 w-full md:w-auto justify-between md:justify-end border-t md:border-t-0 pt-3 md:pt-0 border-surface-border">
                       <div className="text-right">
-                        <p className="text-xl font-black text-ink">₹{g.paymentAmount}</p>
-                        <p className="text-[10px] text-ink-subtle font-semibold uppercase">{g.paymentType}</p>
+                        <span className="text-base font-black text-ink">₹{g.paymentAmount}</span>
+                        <span className="text-xxs text-ink-subtle font-medium block uppercase">{g.paymentType === 'hourly' ? '/ hr' : 'Fixed'}</span>
                       </div>
 
                       {isAccepted ? (
                         <button
                           onClick={() => setActiveTab('confirmed')}
-                          className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 text-xs font-extrabold shadow-md transition-all flex items-center gap-1.5"
+                          className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-3.5 py-2 text-xs font-bold shadow-2xs transition-all flex items-center gap-1 btn-press"
                         >
-                          <CheckCircle2 size={15} />
-                          Go to Confirmed Shift
+                          <CheckCircle2 size={13} />
+                          Go to Shift
                         </button>
                       ) : (
                         <Link
                           href={`/worker/gigs/${g.id}`}
-                          className="rounded-2xl border border-surface-border bg-stone-50 hover:bg-stone-100 text-ink px-4 py-2.5 text-xs font-bold transition-all shadow-xs"
+                          className="rounded-lg border border-surface-border bg-stone-50 hover:bg-stone-100 text-ink px-3 py-2 text-xs font-semibold transition-all shadow-2xs btn-press"
                         >
-                          View Gig Details →
+                          View Shift Details →
                         </Link>
                       )}
                     </div>
@@ -596,19 +453,20 @@ function WorkerGigsContent() {
       {activeTab === 'confirmed' && (
         <div className="space-y-6">
           {loading ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-36 bg-white border rounded-3xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+              <div className="h-44 bg-white border border-surface-border rounded-xl" />
+              <div className="h-44 bg-white border border-surface-border rounded-xl" />
             </div>
           ) : confirmedGigs.length === 0 ? (
             <EmptyState
               icon={Briefcase}
               title="No confirmed upcoming shifts"
               description="Once an employer approves your application, your confirmed shifts will appear here for GPS check-in and on-duty tracking."
-              actionLabel="Browse Available Gigs"
+              actionLabel="Browse Available Shifts"
               onAction={() => setActiveTab('available')}
             />
           ) : (
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {confirmedGigs.map(g => (
                 <GigCard 
                   key={g.id} 
@@ -626,17 +484,18 @@ function WorkerGigsContent() {
       {activeTab === 'completed' && (
         <div className="space-y-6">
           {loading ? (
-            <div className="space-y-4 animate-pulse">
-              <div className="h-36 bg-white border rounded-3xl" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-pulse">
+              <div className="h-44 bg-white border border-surface-border rounded-xl" />
+              <div className="h-44 bg-white border border-surface-border rounded-xl" />
             </div>
           ) : completedGigs.length === 0 ? (
             <EmptyState
               icon={CheckCircle}
-              title="No completed gigs logged yet"
+              title="No completed shifts logged yet"
               description="Finished shifts, GPS attendance logs, and completed payouts will be archived here."
             />
           ) : (
-            <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {completedGigs.map(g => (
                 <GigCard 
                   key={g.id} 

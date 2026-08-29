@@ -31,29 +31,28 @@ export default function MobileBottomNav() {
   // Employer / Seeker items
   const employerTabs = [
     { label: 'Home', href: '/home', icon: Home },
-    { label: 'Post Gig', href: '/post-gig', icon: Briefcase },
-    { label: 'My Gigs', href: '/posted-gigs', icon: Calendar },
+    { label: 'Post Shift', href: '/post-gig', icon: Briefcase },
+    { label: 'My Shifts', href: '/posted-gigs', icon: Calendar },
     { label: 'Workers', href: '/explore', icon: Search },
     { label: 'Profile', href: '/profile', icon: User },
   ];
 
   // Worker items
   const workerTabs = [
-    { label: 'Dashboard', href: '/worker', icon: LayoutDashboard },
-    { label: 'Find Gigs', href: '/worker/gigs', icon: Briefcase },
+    { label: 'Home', href: '/worker', icon: Home },
+    { label: 'Find Work', href: '/worker/gigs', icon: Briefcase },
     { label: 'Earnings', href: '/worker/earnings', icon: IndianRupee },
-    { label: 'Community', href: '/worker/communities', icon: Users },
-    { label: 'Profile', href: '/worker/profile', icon: User },
+    { label: 'Availability', href: '/worker/profile', icon: Calendar },
+    { label: 'Profile', href: '/profile', icon: User },
   ];
 
   const activeTabs = isWorker ? workerTabs : employerTabs;
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border bg-white/95 backdrop-blur-md pb-safe md:hidden">
-      <div className="flex h-16 items-center justify-around px-2">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-surface-border bg-white/95 backdrop-blur-md pb-safe md:hidden shadow-xs">
+      <div className="flex h-15 items-center justify-around px-2">
         {activeTabs.map((tab) => {
           const Icon = tab.icon;
-          // Exact match or matches starting path (except home)
           const isActive = tab.href === '/home' || tab.href === '/worker'
             ? pathname === tab.href
             : pathname.startsWith(tab.href);
@@ -62,12 +61,12 @@ export default function MobileBottomNav() {
             <Link
               key={tab.label}
               href={tab.href}
-              className={`flex flex-col items-center justify-center flex-1 py-2 text-xxs font-medium transition-colors ${
-                isActive ? 'text-brand-600' : 'text-ink-subtle hover:text-ink-muted'
+              className={`flex flex-col items-center justify-center flex-1 py-1.5 text-[10px] font-semibold transition-all btn-press ${
+                isActive ? 'text-brand-600 font-bold' : 'text-ink-subtle hover:text-ink'
               }`}
             >
-              <Icon size={20} className={isActive ? 'stroke-[2.5px]' : 'stroke-[1.8px]'} />
-              <span className="mt-1 text-[10px] tracking-wide">{tab.label}</span>
+              <Icon size={19} className={isActive ? 'stroke-[2.5px] text-brand-600' : 'stroke-[1.8px]'} />
+              <span className="mt-0.5 tracking-tight">{tab.label}</span>
             </Link>
           );
         })}

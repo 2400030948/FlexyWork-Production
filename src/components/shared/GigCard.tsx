@@ -63,7 +63,7 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
   const isWorker = viewMode === 'worker';
 
   return (
-    <div className="flex flex-col rounded-xl border border-surface-border bg-white p-5 shadow-2xs hover:border-stone-300 hover:shadow-xs transition-all duration-200">
+    <div className="flex flex-col rounded-xl border border-surface-border bg-white p-5 shadow-2xs hover:border-stone-300 hover:shadow-xs card-interactive transition-all">
       
       {/* Category & Status Row */}
       <div className="flex items-center justify-between border-b border-surface-border/70 pb-3 mb-3">

@@ -124,16 +124,16 @@ export default function BookingDetailPage() {
   const acceptedApps = applications.filter(a => a.status === 'accepted');
 
   return (
-    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 animate-in fade-in duration-200">
+    <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 page-enter">
       
       {/* Top Navigation */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center border-b border-surface-border pb-4">
         <Link href="/posted-gigs" className="inline-flex items-center gap-1.5 text-xs font-bold text-ink-muted hover:text-ink transition-colors">
-          <ArrowLeft size={14} /> Back to Posted Gigs
+          <ArrowLeft size={14} /> Back to Posted Shifts
         </Link>
         <button
           onClick={fetchGigData}
-          className="p-2 bg-white border border-surface-border hover:bg-stone-50 text-ink-muted hover:text-ink rounded-xl transition-all shadow-xs"
+          className="p-2 bg-white border border-surface-border hover:bg-stone-50 text-ink-muted hover:text-ink rounded-lg transition-all shadow-2xs btn-press"
           title="Refresh Data"
         >
           <RefreshCw size={14} />
@@ -141,16 +141,16 @@ export default function BookingDetailPage() {
       </div>
 
       {/* Main Details Panel */}
-      <div className="bg-white border border-surface-border rounded-3xl p-6 sm:p-8 shadow-sm space-y-6">
+      <div className="bg-white border border-surface-border rounded-xl p-6 shadow-2xs space-y-6">
         
         {/* Title and Category */}
         <div className="flex justify-between items-start gap-4">
           <div>
-            <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-100 px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+            <span className="text-xxs font-bold text-brand-700 bg-brand-50 border border-brand-100 px-2 py-0.5 rounded uppercase tracking-wider">
               {gig.category}
             </span>
-            <h1 className="text-2xl font-extrabold text-ink tracking-tight mt-2">{gig.title}</h1>
-            <p className="text-xs text-ink-subtle mt-1 font-semibold">Booking ID: #{gig.id.slice(-6)}</p>
+            <h1 className="text-2xl font-bold text-ink tracking-tight mt-1.5">{gig.title}</h1>
+            <p className="text-xs text-ink-muted mt-0.5 font-medium">Shift Reference: #{gig.id.slice(-6)}</p>
           </div>
           <StatusBadge status={gig.status} />
         </div>
