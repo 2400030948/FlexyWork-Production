@@ -5,9 +5,9 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Sparkles, Briefcase, Calendar, Clock, MapPin, IndianRupee, 
-  Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye
+  Users, CheckCircle, ArrowRight, AlertCircle, Plus, X, Zap, Eye, HelpCircle
 } from 'lucide-react';
-import { createGig, parseAIPrompt } from '../../services/gigs';
+import { createGig, parseShiftNaturalLanguage, parseAIPrompt } from '../../services/gigs';
 
 const CATEGORIES = [
   { id: 'Cleaning', name: 'Cleaning', icon: '🧹', skills: ['Deep Cleaning', 'Sanitization', 'Floor Scrubbing', 'Window Cleaning'] },
@@ -21,10 +21,10 @@ const CATEGORIES = [
 ];
 
 const PRESET_PROMPTS = [
-  'Need 2 cafe waitstaff tomorrow 5 PM to 10 PM in Indiranagar paying ₹800 each',
-  'Need 1 deep cleaner for 3BHK flat on Sunday 9 AM to 2 PM paying ₹1500',
-  'Need 1 electrician for store wiring repairs today from 2 PM to 6 PM paying ₹1200',
-  'Need 3 warehouse helpers for inventory unloading tomorrow 10 AM to 4 PM paying ₹900 each'
+  'I need a waiter this Saturday from 6 PM to 11 PM. Pay is ₹1000 for the shift. Must have customer service experience.',
+  'Need 1 cashier this Saturday from 9 AM to 3 PM. ₹150 per hour. Must know Excel.',
+  'Need 1 deep cleaner for 3BHK flat on Sunday 9 AM to 2 PM paying ₹1500.',
+  'Need 1 electrician for store wiring repairs today from 2 PM to 6 PM paying ₹1200.'
 ];
 
 export default function PostGigPage() {
@@ -33,6 +33,8 @@ export default function PostGigPage() {
   // AI Prompt Bar
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
+  const [needsClarification, setNeedsClarification] = useState<string[]>([]);
+  const [aiSuccessMessage, setAiSuccessMessage] = useState<string | null>(null);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -47,44 +49,62 @@ export default function PostGigPage() {
   const [duration, setDuration] = useState('4h');
   const [location, setLocation] = useState('Indiranagar, Bangalore');
   const [paymentType, setPaymentType] = useState<'fixed' | 'hourly'>('fixed');
-  const [paymentAmount, setPaymentAmount] = useState(800);
+  const [paymentAmount, setPaymentAmount] = useState<number | ''>(800);
   const [urgency, setUrgency] = useState<'normal' | 'urgent'>('normal');
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [submittedGigId, setSubmittedGigId] = useState<string | null>(null);
 
-  // Handle AI Auto-Fill
+  // Handle AI Auto-Fill & Natural Language Extraction
   const handleAIParsing = async (promptToUse?: string) => {
     const text = promptToUse || aiPrompt;
     if (!text.trim()) return;
 
     setAiLoading(true);
     setError('');
+    setAiSuccessMessage(null);
     try {
-      const parsed = await parseAIPrompt(text);
-      if (parsed) {
-        if (parsed.title) setTitle(parsed.title);
-        if (parsed.description) setDescription(parsed.description);
-        if (parsed.category) {
-          const matchCat = CATEGORIES.find(c => c.id.toLowerCase() === parsed.category.toLowerCase() || c.name.toLowerCase().includes(parsed.category.toLowerCase()));
+      const response = await parseShiftNaturalLanguage(text);
+      const { parsedShift, needsClarification: clarifications } = response;
+      
+      setNeedsClarification(clarifications || []);
+
+      if (parsedShift) {
+        if (parsedShift.title) setTitle(parsedShift.title);
+        if (parsedShift.description) setDescription(parsedShift.description);
+        if (parsedShift.category) {
+          const matchCat = CATEGORIES.find(
+            c => c.id.toLowerCase() === parsedShift.category?.toLowerCase() ||
+                 c.name.toLowerCase().includes(parsedShift.category?.toLowerCase() || '')
+          );
           if (matchCat) setCategory(matchCat.id);
           else setCategory('General');
         }
-        if (Array.isArray(parsed.requiredSkills) && parsed.requiredSkills.length > 0) {
-          setRequiredSkills(parsed.requiredSkills);
+        if (Array.isArray(parsedShift.requiredSkills) && parsedShift.requiredSkills.length > 0) {
+          setRequiredSkills(parsedShift.requiredSkills);
         }
-        if (parsed.workersRequired) setWorkersRequired(Number(parsed.workersRequired));
-        if (parsed.date) setDate(parsed.date);
-        if (parsed.startTime) setStartTime(parsed.startTime);
-        if (parsed.endTime) setEndTime(parsed.endTime);
-        if (parsed.duration) setDuration(parsed.duration);
-        if (parsed.paymentAmount) setPaymentAmount(Number(parsed.paymentAmount));
-        if (parsed.paymentType) setPaymentType(parsed.paymentType);
-        if (parsed.location) setLocation(parsed.location);
+        if (parsedShift.workersRequired) setWorkersRequired(Number(parsedShift.workersRequired));
+        if (parsedShift.date) setDate(parsedShift.date);
+        if (parsedShift.startTime) setStartTime(parsedShift.startTime);
+        if (parsedShift.endTime) setEndTime(parsedShift.endTime);
+        if (parsedShift.duration) setDuration(parsedShift.duration);
+        if (parsedShift.paymentAmount !== null && parsedShift.paymentAmount !== undefined) {
+          setPaymentAmount(Number(parsedShift.paymentAmount));
+        }
+        if (parsedShift.paymentType) setPaymentType(parsedShift.paymentType);
+        if (parsedShift.location) setLocation(parsedShift.location);
+        if (parsedShift.urgency) setUrgency(parsedShift.urgency);
+
+        if (clarifications && clarifications.length > 0) {
+          setAiSuccessMessage(`Draft generated! Please review and fill in highlighted fields (${clarifications.join(', ')}).`);
+        } else {
+          setAiSuccessMessage('Shift details successfully extracted! Please review below and publish.');
+        }
       }
     } catch (err: any) {
-      setError('Could not auto-fill with AI. Please fill in the details manually.');
+      console.error('AI parse error:', err);
+      setError("AI couldn't understand the description. You can still create the shift manually.");
     } finally {
       setAiLoading(false);
     }

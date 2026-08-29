@@ -86,11 +86,38 @@ export async function updateApplicationStatus(applicationId: string, status: 'ac
   });
 }
 
-export async function parseAIPrompt(prompt: string): Promise<any> {
-  const data = await apiCall<{ parsed: any }>('/api/shifts/parse', {
+export type ParsedShiftData = {
+  title?: string | null;
+  description?: string | null;
+  category?: string | null;
+  requiredSkills?: string[];
+  workersRequired?: number | null;
+  date?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  duration?: string | null;
+  paymentAmount?: number | null;
+  paymentType?: 'fixed' | 'hourly' | null;
+  location?: string | null;
+  urgency?: 'normal' | 'urgent' | null;
+};
+
+export type ParseShiftResponse = {
+  parsedShift: ParsedShiftData;
+  needsClarification: string[];
+  parsed?: ParsedShiftData;
+};
+
+export async function parseShiftNaturalLanguage(rawText: string): Promise<ParseShiftResponse> {
+  return await apiCall<ParseShiftResponse>('/api/shifts/parse', {
     method: 'POST',
-    body: JSON.stringify({ prompt })
+    body: JSON.stringify({ rawText })
   });
-  return data.parsed;
 }
+
+export async function parseAIPrompt(prompt: string): Promise<any> {
+  const data = await parseShiftNaturalLanguage(prompt);
+  return data.parsedShift || data.parsed;
+}
+
 

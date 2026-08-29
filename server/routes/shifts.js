@@ -8,6 +8,7 @@ import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
 import { Shift } from "../models/Shift.js";
 import { User } from "../models/User.js";
 import { calculateMatch } from "../services/matching.js";
+import { parseShiftFromNaturalLanguage } from "../services/aiShiftParser.js";
 
 const router = express.Router();
 
@@ -128,59 +129,35 @@ router.post("/", optionalAuth, async (req, res, next) => {
   }
 });
 
-router.post("/parse", (req, res, next) => {
+const parsePayloadSchema = z.object({
+  rawText: z.string().min(1).max(5000).optional(),
+  prompt: z.string().min(1).max(5000).optional()
+}).refine((data) => (data.rawText && data.rawText.trim().length > 0) || (data.prompt && data.prompt.trim().length > 0), {
+  message: "rawText or prompt is required"
+});
+
+router.post("/parse", optionalAuth, async (req, res, next) => {
   try {
-    const text = z.object({ prompt: z.string().min(3) }).parse(req.body).prompt;
-    const lower = text.toLowerCase();
-    const payment = text.match(/(?:₹|rs\.?|rupees?)\s?(\d+)/i)?.[1] || text.match(/\b(\d{3,5})\b/)?.[1] || "500";
-    const workers = text.match(/\b(\d+)\s?(helpers?|workers?|people|staff)\b/i)?.[1] || "1";
-    const title = lower.includes("waiter")
-      ? "Waiter"
-      : lower.includes("shop")
-      ? "Shop Helper"
-      : lower.includes("clean")
-      ? "Deep Cleaning"
-      : lower.includes("electric") || lower.includes("wiring")
-      ? "Electrician"
-      : lower.includes("garden") || lower.includes("lawn")
-      ? "Gardener"
-      : "Helper";
+    const parsedBody = parsePayloadSchema.safeParse(req.body);
+    if (!parsedBody.success) {
+      return res.status(400).json({ message: "Please provide a valid shift description in rawText." });
+    }
+
+    const rawText = (parsedBody.data.rawText || parsedBody.data.prompt || "").trim();
+    if (!rawText) {
+      return res.status(400).json({ message: "rawText must be a non-empty string." });
+    }
+
+    const { parsedShift, needsClarification } = await parseShiftFromNaturalLanguage(rawText);
+
     res.json({
-      parsed: {
-        title,
-        description: `Flexible ${title.toLowerCase()} shift created from employer request.`,
-        category: lower.includes("shop")
-          ? "Retail"
-          : lower.includes("cafe") || lower.includes("restaurant")
-          ? "Cafe"
-          : lower.includes("clean")
-          ? "Cleaning"
-          : lower.includes("electric") || lower.includes("wiring")
-          ? "Repairs"
-          : lower.includes("garden")
-          ? "Gardening"
-          : "General",
-        requiredSkills: lower.includes("shop")
-          ? ["Stocking", "Customer handling"]
-          : lower.includes("clean")
-          ? ["Deep Cleaning", "Organization"]
-          : lower.includes("electric") || lower.includes("wiring")
-          ? ["Wiring & Repairs", "Appliance Installation"]
-          : lower.includes("garden")
-          ? ["Lawn Mowing", "Pruning & Hedging"]
-          : ["Customer handling", "Basic communication"],
-        workersRequired: Number(workers),
-        date: lower.includes("tomorrow") ? new Date(Date.now() + 86400000).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10),
-        startTime: text.match(/\b(\d{1,2})\s?(am|pm)\b/i)?.[0]?.toUpperCase() || "5 PM",
-        endTime: text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)?.[1] ? `${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[1]} ${text.match(/to\s?(\d{1,2})\s?(am|pm)\b/i)[2].toUpperCase()}` : "9 PM",
-        duration: "4h",
-        paymentType: "fixed",
-        paymentAmount: Number(payment),
-        location: "Indiranagar"
-      }
+      parsedShift,
+      needsClarification,
+      parsed: parsedShift
     });
   } catch (error) {
-    next(error);
+    console.error("Shift parse error:", error);
+    res.status(500).json({ message: "AI shift parsing failed. You can still fill the form manually." });
   }
 });
 
