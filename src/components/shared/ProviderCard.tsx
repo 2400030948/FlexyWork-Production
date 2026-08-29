@@ -14,7 +14,7 @@ export default function ProviderCard({ provider }: ProviderCardProps) {
       {/* Top Banner Details */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-lg bg-stone-100 text-stone-800 font-bold flex items-center justify-center text-sm border border-surface-border shrink-0">
+          <div className="h-11 w-11 rounded-lg bg-brand-50 text-brand-700 font-bold flex items-center justify-center text-sm border border-brand-100 shrink-0">
             {provider.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase()}
           </div>
           <div>
@@ -28,7 +28,13 @@ export default function ProviderCard({ provider }: ProviderCardProps) {
                 </span>
               )}
             </div>
-            <p className="text-xs text-ink-muted mt-0.5">{provider.skills[0] || 'Flexible Service'}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <span className="text-xs text-ink-muted">{provider.skills[0] || 'Flexible Service'}</span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.2 rounded">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                Available
+              </span>
+            </div>
           </div>
         </div>
 

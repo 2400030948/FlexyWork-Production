@@ -338,16 +338,19 @@ export default function PostGigPage() {
         </Link>
       </div>
 
-      {/* Minimalist Quick Shift Autofill */}
-      <div className="rounded-2xl border border-surface-border bg-white p-5 shadow-xs space-y-3">
+      {/* Quick Shift Autofill */}
+      <div className="rounded-2xl border border-brand-200/80 bg-gradient-to-br from-brand-50/40 via-white to-brand-50/20 p-5 shadow-2xs space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xs font-bold text-ink">Quick Fill from Text</span>
             <span className="text-xxs text-ink-subtle">Type or speak shift requirements to pre-fill the form</span>
           </div>
+          <span className="text-xxs font-semibold text-brand-700 bg-brand-50 border border-brand-200/60 px-2 py-0.5 rounded">
+            English & Hindi
+          </span>
         </div>
 
-        <div className="relative rounded-xl border border-surface-border bg-stone-50/50 focus-within:bg-white focus-within:border-brand-500/50 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all">
+        <div className="relative rounded-xl border border-brand-200/90 bg-white/90 focus-within:bg-white focus-within:border-brand-500 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all shadow-2xs">
           <textarea
             rows={2}
             value={aiPrompt}
@@ -369,7 +372,7 @@ export default function PostGigPage() {
               className={`p-1.5 rounded-lg text-xs transition-all ${
                 isListening
                   ? 'bg-rose-50 text-rose-600 font-bold animate-pulse'
-                  : 'text-stone-400 hover:text-ink hover:bg-stone-200/50'
+                  : 'text-stone-400 hover:text-brand-600 hover:bg-brand-50'
               }`}
               title={isListening ? 'Listening... click to stop' : 'Voice Input'}
             >
@@ -380,7 +383,7 @@ export default function PostGigPage() {
               type="button"
               onClick={() => handleAIParsing()}
               disabled={aiLoading || !aiPrompt.trim()}
-              className="rounded-lg bg-ink hover:bg-black disabled:opacity-30 text-white px-3.5 py-1.5 text-xs font-semibold transition-all shadow-xs flex items-center gap-1"
+              className="rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-40 text-white px-3.5 py-1.5 text-xs font-bold transition-all shadow-2xs flex items-center gap-1"
             >
               {aiLoading ? (
                 <span>Parsing...</span>
@@ -395,8 +398,8 @@ export default function PostGigPage() {
         {aiSuccessMessage && (
           <div className={`text-xs font-medium rounded-xl p-3 flex items-center gap-2 animate-in fade-in duration-200 ${
             needsClarification.length > 0
-              ? 'bg-amber-50/70 border border-amber-200/60 text-amber-900'
-              : 'bg-emerald-50/70 border border-emerald-200/60 text-emerald-900'
+              ? 'bg-amber-50/80 border border-amber-200/80 text-amber-900'
+              : 'bg-emerald-50/80 border border-emerald-200/80 text-emerald-900'
           }`}>
             {needsClarification.length > 0 ? (
               <AlertCircle size={15} className="shrink-0 text-amber-600" />
@@ -418,7 +421,7 @@ export default function PostGigPage() {
                 setAiPrompt(prompt);
                 handleAIParsing(prompt);
               }}
-              className="truncate text-ink-muted hover:text-ink hover:underline underline-offset-2 transition-all shrink-0 max-w-[280px]"
+              className="truncate text-ink-muted hover:text-brand-600 hover:underline underline-offset-2 transition-all shrink-0 max-w-[280px]"
             >
               "{prompt}"
             </button>
@@ -747,9 +750,9 @@ export default function PostGigPage() {
                 type="button"
                 onClick={handleEnhanceDescription}
                 disabled={enhancingDesc}
-                className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-black bg-stone-50 hover:bg-stone-100 border border-surface-border px-2.5 py-1 rounded-lg transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-2.5 py-1 rounded-lg transition-all disabled:opacity-50"
               >
-                <Wand2 size={12} className={enhancingDesc ? "animate-spin text-ink" : "text-ink-muted"} />
+                <Wand2 size={12} className={enhancingDesc ? "animate-spin text-brand-600" : "text-brand-600"} />
                 {enhancingDesc ? "Formatting..." : "Auto-format duties"}
               </button>
             </div>
@@ -758,7 +761,7 @@ export default function PostGigPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Describe the tasks, tools provided, attire, and any specific expectations..."
-              className="w-full rounded-2xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white leading-relaxed"
+              className="w-full rounded-xl border border-surface-border bg-stone-50/40 p-4 text-xs font-medium text-ink focus:bg-white leading-relaxed"
             />
           </div>
 
@@ -767,14 +770,14 @@ export default function PostGigPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-2xl bg-brand-500 hover:bg-brand-600 text-white py-4 text-sm font-extrabold shadow-md shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              className="w-full rounded-xl bg-brand-600 hover:bg-brand-700 text-white py-3.5 text-sm font-bold shadow-sm shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {loading ? (
-                <span>Publishing Gig...</span>
+                <span>Publishing Shift...</span>
               ) : (
                 <>
                   <Plus size={18} />
-                  <span>Publish Gig to Workers</span>
+                  <span>Publish Shift to Workers</span>
                 </>
               )}
             </button>
@@ -787,15 +790,15 @@ export default function PostGigPage() {
           <div className="sticky top-24 space-y-4">
 
             {/* Shift Completeness Meter */}
-            <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-xs space-y-2.5">
+            <div className="rounded-xl border border-surface-border bg-white p-4 shadow-2xs space-y-2.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-ink">Listing Completeness</span>
-                <span className="text-xs font-bold text-ink-muted">{qualityScore}%</span>
+                <span className={`text-xs font-bold ${qualityScore >= 80 ? 'text-emerald-700' : 'text-brand-700'}`}>{qualityScore}%</span>
               </div>
-              <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
+              <div className="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-300 ${
-                    qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-stone-400'
+                    qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-brand-500' : 'bg-amber-500'
                   }`}
                   style={{ width: `${qualityScore}%` }}
                 />

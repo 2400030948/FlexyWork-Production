@@ -102,7 +102,7 @@ export default function SeekerHome() {
         <div className="bg-white border border-surface-border rounded-xl p-4 shadow-2xs">
           <span className="text-xxs font-medium text-ink-subtle uppercase">Available Talent Nearby</span>
           <p className="text-xl font-bold text-ink mt-0.5">{providers.length}</p>
-          <span className="text-xxs text-ink-subtle font-medium">Verified local workers</span>
+          <span className="text-xxs text-brand-600 font-semibold">Verified local workers</span>
         </div>
       </div>
 
@@ -116,12 +116,12 @@ export default function SeekerHome() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search local workers by skill (e.g. barista, cashier, electrician, packing)..."
-              className="w-full rounded-lg border border-surface-border bg-stone-50/50 py-2.5 pl-10 pr-4 text-xs text-ink placeholder:text-stone-400 font-medium focus:bg-white transition-all"
+              className="w-full rounded-lg border border-surface-border bg-stone-50/50 py-2.5 pl-10 pr-4 text-xs text-ink placeholder:text-stone-400 font-medium focus:bg-white focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="rounded-lg bg-ink hover:bg-black text-white px-4 py-2.5 text-xs font-semibold transition-colors shrink-0"
+            className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 text-xs font-bold transition-colors shrink-0"
           >
             Search Workers
           </button>

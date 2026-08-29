@@ -68,11 +68,11 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
       {/* Category & Status Row */}
       <div className="flex items-center justify-between border-b border-surface-border/70 pb-3 mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xxs font-bold text-ink-muted bg-stone-100 px-2 py-0.5 rounded uppercase tracking-wider">
+          <span className="text-xxs font-bold text-brand-700 bg-brand-50 border border-brand-100/80 px-2 py-0.5 rounded uppercase tracking-wider">
             {gig.category}
           </span>
           {gig.urgency === 'urgent' && (
-            <span className="bg-rose-50 text-rose-700 border border-rose-200/60 rounded px-2 py-0.5 text-xxs font-bold uppercase tracking-wider">
+            <span className="bg-amber-50 text-amber-800 border border-amber-200/80 rounded px-2 py-0.5 text-xxs font-bold uppercase tracking-wider">
               Urgent Shift
             </span>
           )}
@@ -96,7 +96,7 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
         {/* Structured Editorial Metadata */}
         <div className="space-y-1 pt-1 text-xs text-ink-subtle">
           <div className="flex items-center gap-1.5 font-medium text-ink-muted">
-            <Clock size={13} className="shrink-0 text-stone-400" />
+            <Clock size={13} className="shrink-0 text-brand-600" />
             <span>{gig.date} · {gig.time} ({gig.duration})</span>
           </div>
           <div className="flex items-center gap-1.5">
@@ -108,12 +108,18 @@ export default function GigCard({ gig, viewMode, onActionComplete }: GigCardProp
 
       {/* Match Score Indicator (Worker View) */}
       {isWorker && gig.status === 'REQUESTED' && gig.matchScore && (
-        <div className="flex items-center justify-between rounded-lg bg-emerald-50/70 border border-emerald-100 px-3 py-2 my-3 text-xs">
-          <div className="flex items-center gap-1.5 font-bold text-emerald-900">
+        <div className={`flex items-center justify-between rounded-lg px-3 py-2 my-3 text-xs border ${
+          gig.matchScore >= 90
+            ? 'bg-emerald-50/80 border-emerald-200/80 text-emerald-900'
+            : gig.matchScore >= 75
+            ? 'bg-brand-50/80 border-brand-200/80 text-brand-900'
+            : 'bg-amber-50/80 border-amber-200/80 text-amber-900'
+        }`}>
+          <div className="flex items-center gap-1.5 font-bold">
             <span>{gig.matchScore}% Match</span>
           </div>
-          <span className="text-xxs font-medium text-emerald-800 truncate max-w-[200px]">
-            {gig.matchReasons?.[0] || 'Matches schedule & radius'}
+          <span className="text-xxs font-medium truncate max-w-[200px] opacity-90">
+            {gig.matchReasons?.[0] || 'Matches your availability and skills'}
           </span>
         </div>
       )}

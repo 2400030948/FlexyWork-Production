@@ -67,45 +67,41 @@ export default function Navbar() {
 
           {/* Desktop Navigation */}
           {currentUser && !isAdminPortal && (
-            <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-ink-muted">
+            <nav className="hidden md:flex items-center gap-1 text-xs font-semibold text-ink-muted">
               {currentUser.role !== 'worker' ? (
                 <>
-                  <Link href="/home" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/home' ? 'text-ink font-semibold' : ''}`}>
+                  <Link href="/home" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/home' ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
                     Dashboard
                   </Link>
                   <Link 
                     href="/post-gig" 
-                    className={`px-3 py-1.5 rounded-xl font-bold transition-all text-xs flex items-center gap-1 ${
-                      pathname === '/post-gig' 
-                        ? 'bg-brand-500 text-white shadow-xs' 
-                        : 'bg-brand-50 text-brand-700 hover:bg-brand-100 border border-brand-200'
-                    }`}
+                    className="ml-1 px-3 py-1.5 rounded-lg font-bold transition-all text-xs bg-brand-600 hover:bg-brand-700 text-white shadow-2xs flex items-center gap-1"
                   >
-                    + Post a Gig
+                    + Post Shift
                   </Link>
-                  <Link href="/posted-gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/posted-gigs' || pathname.startsWith('/bookings') ? 'text-ink font-semibold' : ''}`}>
-                    My Posted Gigs
+                  <Link href="/posted-gigs" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/posted-gigs' || pathname.startsWith('/bookings') ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
+                    My Shifts
                   </Link>
-                  <Link href="/explore" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/explore' ? 'text-ink font-semibold' : ''}`}>
+                  <Link href="/explore" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/explore' ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
                     Find Workers
                   </Link>
-                  <Link href="/community" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/community') ? 'text-ink font-semibold' : ''}`}>
+                  <Link href="/community" className={`px-3 py-2 rounded-lg transition-colors ${pathname.startsWith('/community') ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
                     Collectives
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link href="/worker" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker' ? 'text-ink font-semibold' : ''}`}>
-                    Command Center
+                  <Link href="/worker" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/worker' ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
+                    Home
                   </Link>
-                  <Link href="/worker/gigs" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname.startsWith('/worker/gigs') ? 'text-ink font-semibold' : ''}`}>
-                    Find & My Gigs
+                  <Link href="/worker/gigs" className={`px-3 py-2 rounded-lg transition-colors ${pathname.startsWith('/worker/gigs') ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
+                    Find Work
                   </Link>
-                  <Link href="/worker/earnings" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/earnings' ? 'text-ink font-semibold' : ''}`}>
+                  <Link href="/worker/earnings" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/worker/earnings' ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
                     Earnings
                   </Link>
-                  <Link href="/worker/communities" className={`px-3 py-2 rounded-md transition-colors hover:text-ink ${pathname === '/worker/communities' ? 'text-ink font-semibold' : ''}`}>
-                    Communities
+                  <Link href="/worker/communities" className={`px-3 py-2 rounded-lg transition-colors ${pathname === '/worker/communities' ? 'text-brand-700 bg-brand-50/80 font-bold' : 'hover:text-ink hover:bg-stone-50'}`}>
+                    Collectives
                   </Link>
                 </>
               )}
@@ -113,11 +109,14 @@ export default function Navbar() {
           )}
 
           {!currentUser && (
-            <nav className="hidden md:flex items-center gap-1 text-sm font-medium text-ink-muted">
-              <Link href="/how-it-works" className="px-3 py-2 transition-colors hover:text-ink">
-                How it works
+            <nav className="hidden md:flex items-center gap-1 text-xs font-semibold text-ink-muted">
+              <Link href="/explore" className="px-3 py-2 rounded-lg transition-colors hover:text-ink hover:bg-stone-50">
+                Explore Shifts
               </Link>
-              <Link href="/community" className="px-3 py-2 transition-colors hover:text-ink">
+              <Link href="/how-it-works" className="px-3 py-2 rounded-lg transition-colors hover:text-ink hover:bg-stone-50">
+                How It Works
+              </Link>
+              <Link href="/community" className="px-3 py-2 rounded-lg transition-colors hover:text-ink hover:bg-stone-50">
                 Communities
               </Link>
             </nav>
