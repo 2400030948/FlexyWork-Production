@@ -12,14 +12,11 @@ import { Gig, ShiftApplication, User } from '../../../types';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { getGigById, getShiftApplications, updateApplicationStatus } from '../../../services/gigs';
 import {
-  markShiftPaid,
   getRazorpayConfig,
-  createRazorpayOrder,
-  verifyRazorpayPayment,
-  openRazorpayCheckout,
   getShiftPayments
 } from '../../../services/payments';
 import { getMe } from '../../../services/auth';
+import { usePayment } from '../../../components/payments/PaymentProvider';
 
 export default function BookingDetailPage() {
   const params = useParams();
@@ -29,12 +26,12 @@ export default function BookingDetailPage() {
   const [applications, setApplications] = useState<ShiftApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-  const [razorpayReady, setRazorpayReady] = useState(false);
   const [razorpayConfigured, setRazorpayConfigured] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState<'unpaid' | 'paid' | 'failed'>('unpaid');
-  const [paying, setPaying] = useState(false);
 
   const gigId = params.id as string;
+  const { payingShiftId, startPayment } = usePayment();
+  const paying = payingShiftId === gigId;
 
   const fetchGigData = async () => {
     setLoading(true);
@@ -91,51 +88,23 @@ export default function BookingDetailPage() {
 
   const handleRazorpayPayment = async () => {
     if (!gig) return;
-    setPaying(true);
-    try {
-      const order = await createRazorpayOrder(gig.id);
-      setRazorpayReady(true);
-
-      await openRazorpayCheckout({
-        orderId: order.orderId,
-        amountPaise: order.amount,
-        currency: order.currency,
-        keyId: order.keyId,
-        employerName: currentUser?.name || 'Employer',
-        employerEmail: currentUser?.email || '',
-        employerPhone: currentUser?.phone,
-        description: `Payout for ${gig.title}`,
-        shiftId: gig.id,
-        onSuccess: async (response) => {
-          try {
-            await verifyRazorpayPayment({
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              shiftId: gig.id
-            });
-            setPaymentStatus('paid');
-            await fetchGigData();
-          } catch (verifyErr: any) {
-            setPaymentStatus('failed');
-            alert(verifyErr?.message || 'Payment verification failed');
-          }
-        },
-        onDismiss: () => {
-          // User closed the widget without completing payment.
-        }
-      });
-    } catch (e: any) {
-      setPaymentStatus('failed');
-      alert(e?.message || 'Failed to start Razorpay checkout');
-    } finally {
-      setPaying(false);
+    const opened = await startPayment(gig.id, gig.title, gig.paymentAmount, gig.checkInTime);
+    if (opened) {
+      await fetchGigData();
     }
   };
+
+  const canPayWithRazorpay = Boolean(
+    gig?.checkInTime &&
+    paymentStatus !== 'paid' &&
+    razorpayConfigured
+  );
 
   useEffect(() => {
     if (gigId) {
       fetchGigData();
+      const interval = setInterval(fetchGigData, 30000);
+      return () => clearInterval(interval);
     }
   }, [gigId]);
 
@@ -329,33 +298,20 @@ export default function BookingDetailPage() {
                 </p>
                 {gig.checkOutTime ? (
                   <p className="text-[10px] text-ink-muted mt-0.5">
-                    Completed at <strong className="text-ink">{gig.checkOutTime}</strong>. Payout transferred to worker wallet.
+                    Completed at <strong className="text-ink">{gig.checkOutTime}</strong>.
+                    {paymentStatus === 'paid'
+                      ? ' Payout transferred to worker wallet.'
+                      : ' Awaiting employer payment via Razorpay.'}
                   </p>
                 ) : (
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
                     <p className="text-[10px] text-ink-subtle">
-                      {gig.checkInTime ? 'Worker is actively on-duty. Click below once work is finished to release payout.' : 'Waiting for on-site arrival and check-in.'}
+                      {gig.checkInTime
+                        ? paymentStatus === 'paid'
+                          ? 'Worker is on duty. Payment secured in escrow.'
+                          : 'Worker checked in. Complete payment via Razorpay to secure the shift payout.'
+                        : 'Waiting for on-site arrival and check-in.'}
                     </p>
-                    {gig.checkInTime && (
-                      <button
-                        onClick={async () => {
-                          setActionLoading('complete');
-                          try {
-                            await markShiftPaid(gig.id);
-                            await fetchGigData();
-                          } catch (e: any) {
-                            alert(e.message || 'Failed to release payout');
-                          } finally {
-                            setActionLoading(null);
-                          }
-                        }}
-                        disabled={actionLoading === 'complete'}
-                        className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 text-xs font-extrabold shadow-sm transition-all flex items-center gap-1 shrink-0 disabled:opacity-50"
-                      >
-                        <CheckCircle size={13} />
-                        {actionLoading === 'complete' ? 'Settling...' : 'Verify Work & Settle Payout'}
-                      </button>
-                    )}
                   </div>
                 )}
               </div>
@@ -587,13 +543,12 @@ export default function BookingDetailPage() {
               <p className="text-[11px] text-emerald-800 font-semibold">
                 ✓ Worker has been paid. A confirmation notification has been sent.
               </p>
-            ) : gig.status === 'completed' || gig.status === 'COMPLETED' || gig.checkOutTime ? (
+            ) : gig.checkInTime ? (
               <>
                 <p className="text-[11px] text-ink-muted leading-relaxed">
-                  The shift has been completed. Release the payout of{' '}
-                  <strong className="text-ink">₹{gig.paymentAmount}</strong> to the worker securely
-                  via Razorpay. The transaction is protected by a backend signature verification
-                  using your secret credentials.
+                  The worker verified arrival with the OTP. Secure the payout of{' '}
+                  <strong className="text-ink">₹{gig.paymentAmount}</strong> via Razorpay.
+                  The transaction is protected by backend signature verification.
                 </p>
                 <button
                   type="button"
@@ -622,8 +577,8 @@ export default function BookingDetailPage() {
               </>
             ) : (
               <p className="text-[11px] text-ink-muted">
-                The shift must be completed (worker check-out) before the payout can be
-                released via Razorpay.
+                The worker must check in with the arrival OTP before payment can be collected
+                via Razorpay.
               </p>
             )}
           </div>

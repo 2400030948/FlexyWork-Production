@@ -57,8 +57,11 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
     );
     shift.status = "in_progress";
     await shift.save();
-    await Notification.create({ userId: shift.employerId, message: `${req.user.name} verified arrival via OTP and started ${shift.title}` });
-    res.json({ attendance });
+    await Notification.create({
+      userId: shift.employerId,
+      message: `${req.user.name} verified arrival via OTP for ${shift.title}. Complete Razorpay payment to secure the worker payout.`
+    });
+    res.json({ attendance, paymentRequired: true, shiftId: shift._id.toString() });
   } catch (error) {
     next(error);
   }

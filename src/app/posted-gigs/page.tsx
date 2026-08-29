@@ -13,6 +13,7 @@ import { getMe } from '../../services/auth';
 import { getMyGigs, getShiftApplications, updateApplicationStatus } from '../../services/gigs';
 import StatusBadge from '../../components/ui/StatusBadge';
 import EmptyState from '../../components/ui/EmptyState';
+import { usePayment } from '../../components/payments/PaymentProvider';
 
 export default function PostedGigsPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function PostedGigsPage() {
   const [applicationsMap, setApplicationsMap] = useState<Record<string, ShiftApplication[]>>({});
   const [appsLoading, setAppsLoading] = useState<Record<string, boolean>>({});
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const { startPayment, payingShiftId, paymentStatusByShift, razorpayConfigured } = usePayment();
 
   const fetchGigsData = async () => {
     setLoading(true);
@@ -103,7 +105,7 @@ export default function PostedGigsPage() {
   const activeGigs = gigs.filter(g => g.status === 'filled' || g.status === 'in_progress' || g.status === 'ACCEPTED' || g.status === 'IN_PROGRESS');
   const completedGigs = gigs.filter(g => g.status === 'completed' || g.status === 'COMPLETED' || g.status === 'DECLINED' || g.status === 'cancelled');
 
-  const filteredGigs = 
+  const filteredGigs =
     activeTab === 'open' ? openGigs :
     activeTab === 'active' ? activeGigs :
     activeTab === 'completed' ? completedGigs :
@@ -314,16 +316,28 @@ export default function PostedGigsPage() {
 
                 {/* Live Attendance Alerts if In-Progress or Completed */}
                 {(gig.checkInTime || gig.checkOutTime) && (
-                  <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3.5 flex items-center justify-between text-xs text-emerald-900">
+                  <div className="bg-emerald-50/60 border border-emerald-200 rounded-2xl p-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-emerald-900">
                     <div className="flex items-center gap-2">
                       <Radio size={14} className="text-emerald-600 animate-pulse" />
                       <span className="font-bold">Live Shift Attendance:</span>
                       {gig.checkInTime && <span>Checked in at {gig.checkInTime}</span>}
                       {gig.checkOutTime && <span>· Completed at {gig.checkOutTime}</span>}
                     </div>
-                    <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
-                      GPS Verified
-                    </span>
+                    <div className="flex items-center gap-2">
+                      {gig.checkInTime && paymentStatusByShift[gig.id] !== 'paid' && (
+                        <button
+                          type="button"
+                          onClick={() => startPayment(gig.id, gig.title, gig.paymentAmount, gig.checkInTime)}
+                          disabled={!razorpayConfigured || payingShiftId === gig.id}
+                          className="rounded-lg bg-[#1f6fa6] hover:bg-[#155a8a] text-white px-3 py-1.5 text-[10px] font-extrabold uppercase disabled:opacity-50"
+                        >
+                          {payingShiftId === gig.id ? 'Opening...' : 'Pay via Razorpay'}
+                        </button>
+                      )}
+                      <span className="text-[10px] font-extrabold uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                        GPS Verified
+                      </span>
+                    </div>
                   </div>
                 )}
 

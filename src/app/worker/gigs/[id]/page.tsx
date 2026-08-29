@@ -386,7 +386,7 @@ export default function WorkerGigDetailPage() {
                   ) : (
                     <div className="bg-emerald-50 text-emerald-800 border border-emerald-200 rounded-lg p-3 text-xs font-bold flex items-center gap-1.5">
                       <CheckCircle2 size={15} className="text-emerald-600" />
-                      <span>Shift Completed & Paid</span>
+                      <span>Shift Completed</span>
                     </div>
                   )}
                 </div>

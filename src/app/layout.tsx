@@ -4,6 +4,7 @@ import './globals.css';
 import Navbar from '../components/layout/Navbar';
 import MobileBottomNav from '../components/layout/MobileBottomNav';
 import GoogleTranslator from '../components/layout/GoogleTranslator';
+import AppProviders from '../components/layout/AppProviders';
 
 export const metadata: Metadata = {
   title: 'FLEXYWORK | Work flex. Earn more. Grow together.',
@@ -26,7 +27,9 @@ export default function RootLayout({
 
         {/* Main Content Area */}
         <main className="flex-grow pb-16 md:pb-0">
-          {children}
+          <AppProviders>
+            {children}
+          </AppProviders>
         </main>
 
         {/* Responsive Mobile Tab Navigation */}

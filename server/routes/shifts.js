@@ -51,6 +51,12 @@ async function serializeShift(shift, workerProfile, viewerId) {
   if (!attendance && shift.assignedWorkerIds?.length > 0) {
     attendance = await Attendance.findOne({ shiftId: shift._id, workerId: { $in: shift.assignedWorkerIds } });
   }
+  if (!attendance) {
+    attendance = await Attendance.findOne({
+      shiftId: shift._id,
+      checkInAt: { $exists: true, $ne: null }
+    }).sort({ checkInAt: -1 });
+  }
 
   const assignedWorkerIds = (shift.assignedWorkerIds || []).map((id) => id.toString());
   const hash = shift._id.toString();

@@ -111,8 +111,14 @@ router.post("/:shiftId/create-order", requireAuth, requireRole(["employer", "adm
     if (!shift.employerId.equals(req.user._id) && req.user.role !== "admin") {
       return res.status(403).json({ message: "Forbidden" });
     }
-    if (shift.status !== "completed") {
-      return res.status(409).json({ message: "Complete the shift before initiating payment" });
+    if (!["in_progress", "completed", "filled"].includes(shift.status)) {
+      const hasCheckedIn = await Attendance.exists({
+        shiftId: shift._id,
+        checkInAt: { $exists: true, $ne: null }
+      });
+      if (!hasCheckedIn) {
+        return res.status(409).json({ message: "Worker must check in with the arrival OTP before initiating payment" });
+      }
     }
 
     const workerIds = await resolveShiftWorkers(shift);
