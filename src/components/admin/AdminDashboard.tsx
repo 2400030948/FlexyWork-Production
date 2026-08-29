@@ -2,18 +2,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { 
-  Shield, Users, Briefcase, IndianRupee, Star, 
-  CheckCircle, ShieldCheck, ShieldAlert, Layers, Search, RefreshCw 
+import {
+  Shield, Users, Briefcase, IndianRupee, Star,
+  CheckCircle, ShieldCheck, ShieldAlert, Layers, Search, RefreshCw, Filter
 } from 'lucide-react';
-import { User, WorkerProfile, Gig, Community } from '../../types';
+import { User, WorkerProfile, Gig, Community, WorkerVerificationStatus } from '../../types';
 import AdminCharts from '../charts/AdminCharts';
 import StatusBadge from '../ui/StatusBadge';
+import CertificateReviewPanel from './CertificateReviewPanel';
 import { getMe } from '../../services/auth';
-import { getAdminDashboard, toggleWorkerVerification } from '../../services/admin';
+import {
+  getAdminDashboard,
+  toggleWorkerVerification,
+  getWorkerVerifications,
+  AdminWorkerVerificationRow
+} from '../../services/admin';
 
 interface AdminDashboardProps {
-  initialTab?: 'overview' | 'users' | 'workers' | 'gigs' | 'communities' | 'reports';
+  initialTab?: 'overview' | 'users' | 'workers' | 'gigs' | 'communities' | 'certificates' | 'reports';
 }
 
 export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboardProps) {
@@ -21,7 +27,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
 
   // Active tab state
   const [activeTab, setActiveTab] = useState(initialTab);
-  
+
   // Data States
   const [users, setUsers] = useState<User[]>([]);
   const [workers, setWorkers] = useState<WorkerProfile[]>([]);
@@ -29,23 +35,29 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
   const [communities, setCommunities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [verificationQueue, setVerificationQueue] = useState<AdminWorkerVerificationRow[]>([]);
+  const [verificationFilter, setVerificationFilter] = useState<'all' | WorkerVerificationStatus>('all');
+
   const [success, setSuccess] = useState('');
 
   const loadAdminData = async () => {
     setLoading(true);
     const user = await getMe();
-    
+
     if (!user || user.role !== 'admin') {
       router.push('/login');
       return;
     }
 
-    const data = await getAdminDashboard();
+    const [data, verifications] = await Promise.all([
+      getAdminDashboard(),
+      getWorkerVerifications().catch(() => [])
+    ]);
     setUsers(data.users);
     setWorkers(data.workers);
     setGigs(data.gigs);
     setCommunities(data.communities);
+    setVerificationQueue(verifications);
     setLoading(false);
   };
 
@@ -66,19 +78,19 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
   };
 
   // Filter lists based on search
-  const filteredUsers = users.filter(u => 
-    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredUsers = users.filter(u =>
+    (u.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (u.email || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const filteredGigs = gigs.filter(g => 
-    (g.title || '').toLowerCase().includes(searchQuery.toLowerCase()) || 
+  const filteredGigs = gigs.filter(g =>
+    (g.title || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
     (g.employerName || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-200">
-      
+
       {/* Admin Title Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
         <div className="flex items-center gap-3">
@@ -112,6 +124,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
           { id: 'overview', label: 'Platform KPIs' },
           { id: 'users', label: 'User Registry' },
           { id: 'workers', label: 'Worker Verification' },
+          { id: 'certificates', label: 'Certificate Review' },
           { id: 'gigs', label: 'Gig Audit Logs' },
           { id: 'communities', label: 'Collectives' },
           { id: 'reports', label: 'System Flags' }
@@ -140,11 +153,11 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
         </div>
       ) : (
         <div className="space-y-6">
-          
+
           {/* TAB 1: OVERVIEW */}
           {activeTab === 'overview' && (
             <div className="space-y-6">
-              
+
               {/* KPIs Summary Cards */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1">
@@ -171,7 +184,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
 
               {/* Chart & Logs columns */}
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
+
                 {/* Recharts panel */}
                 <div className="lg:col-span-2 bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4">
                   <h3 className="font-bold text-sm text-ink border-b border-surface-border pb-2">User Registry & Volume Growth</h3>
@@ -205,7 +218,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
           {/* TAB 2: USER REGISTRY */}
           {activeTab === 'users' && (
             <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4">
-              
+
               {/* Search box */}
               <div className="relative">
                 <Search className="absolute top-1/2 left-4 -translate-y-1/2 text-ink-subtle" size={16} />
@@ -237,8 +250,8 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
                         <td className="py-3.5 px-4 font-semibold">{u.email}</td>
                         <td className="py-3.5 pl-4 text-right">
                           <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                            u.role === 'admin' 
-                              ? 'bg-amber-50 text-amber-800' 
+                            u.role === 'admin'
+                              ? 'bg-amber-50 text-amber-800'
                               : u.role === 'worker'
                               ? 'bg-indigo-50 text-indigo-800'
                               : 'bg-stone-100 text-stone-850'
@@ -257,51 +270,89 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
 
           {/* TAB 3: WORKER VERIFICATION */}
           {activeTab === 'workers' && (
-            <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4">
-              <h3 className="font-bold text-sm text-ink border-b border-surface-border pb-2">Verify Worker Credentials</h3>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {workers.map(w => (
-                  <div key={w.id} className="flex justify-between items-center p-4 border border-surface-border rounded-2xl bg-stone-50/20">
-                    <div className="flex items-center gap-3">
-                      <div className="h-9 w-9 bg-brand-50 border border-brand-100 text-brand-700 font-extrabold text-xs flex items-center justify-center rounded-lg">
-                        {(w.name || '').split(' ').map(n=>n[0]).join('')}
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-ink">{w.name}</p>
-                        <p className="text-[9px] text-ink-muted mt-0.5">{w.skills[0]} · {w.location}</p>
-                      </div>
-                    </div>
+            <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-surface-border pb-3">
+                <div>
+                  <h3 className="font-bold text-sm text-ink">Worker Verification Queue</h3>
+                  <p className="text-xs text-ink-muted">Workers are verified when an admin approves at least one certificate. Review certificates in the next tab.</p>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Filter size={14} className="text-ink-muted" />
+                  {(['all', 'pending', 'approved', 'rejected', 'unverified'] as const).map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setVerificationFilter(f)}
+                      className={`text-xxs font-extrabold uppercase tracking-wider rounded-full px-3 py-1 border transition-colors ${
+                        verificationFilter === f
+                          ? 'bg-brand-500 text-white border-brand-500'
+                          : 'bg-white text-ink-muted border-surface-border hover:border-brand-300'
+                      }`}
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-                    <div className="flex items-center gap-3">
-                      <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border tracking-wider ${
-                        w.isVerified 
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200' 
-                          : 'bg-rose-50 text-rose-800 border-rose-200'
-                      }`}>
-                        {w.isVerified ? 'Verified' : 'Pending Review'}
-                      </span>
-                      <button
-                        onClick={() => handleVerifyWorker(w.id)}
-                        className={`rounded-lg py-1.5 px-3 text-[10px] font-bold border transition-colors ${
-                          w.isVerified 
-                            ? 'border-rose-200 hover:bg-rose-50 text-rose-600 bg-white' 
-                            : 'border-brand-500 bg-brand-500 hover:bg-brand-650 text-white'
-                        }`}
-                      >
-                        {w.isVerified ? 'Revoke Verify' : 'Approve Verify'}
-                      </button>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {verificationQueue
+                  .filter((row) => verificationFilter === 'all' || row.workerVerificationStatus === verificationFilter)
+                  .map((row) => {
+                  const statusTone =
+                    row.workerVerificationStatus === 'approved'
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      : row.workerVerificationStatus === 'rejected'
+                      ? 'bg-rose-50 text-rose-800 border-rose-200'
+                      : row.workerVerificationStatus === 'pending'
+                      ? 'bg-sky-50 text-sky-800 border-sky-200'
+                      : 'bg-stone-50 text-stone-700 border-stone-200';
+                  return (
+                    <div key={row.workerId} className="p-4 border border-surface-border rounded-2xl bg-stone-50/20 space-y-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="h-9 w-9 bg-brand-50 border border-brand-100 text-brand-700 font-extrabold text-xs flex items-center justify-center rounded-lg shrink-0">
+                            {(row.name || '').split(' ').map(n=>n[0]).join('')}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-xs font-bold text-ink truncate">{row.name}</p>
+                            <p className="text-[9px] text-ink-muted mt-0.5 truncate">{row.skills[0] || 'No skill'} · {row.location || 'Unknown'}</p>
+                          </div>
+                        </div>
+                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border tracking-wider shrink-0 ${statusTone}`}>
+                          {row.workerVerificationStatus}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-xxs text-ink-muted">
+                        <span>{row.certificates.length} certificate{row.certificates.length === 1 ? '' : 's'} on file</span>
+                        <button
+                          onClick={() => {
+                            setActiveTab('certificates');
+                            setSearchQuery(row.name);
+                          }}
+                          className="rounded-md text-brand-600 hover:text-brand-700 font-extrabold uppercase tracking-wider"
+                        >
+                          Review →
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+                {verificationQueue.length === 0 && (
+                  <div className="md:col-span-2 text-center py-12 text-xs text-ink-muted">No worker verification data available.</div>
+                )}
               </div>
             </div>
           )}
 
-          {/* TAB 4: GIGS AUDITING */}
+          {/* TAB 4: CERTIFICATE REVIEW */}
+          {activeTab === 'certificates' && (
+            <CertificateReviewPanel />
+          )}
+
+          {/* TAB 5: GIGS AUDITING */}
           {activeTab === 'gigs' && (
             <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4">
-              
+
               {/* Search box */}
               <div className="relative">
                 <Search className="absolute top-1/2 left-4 -translate-y-1/2 text-ink-subtle" size={16} />
@@ -345,11 +396,11 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
             </div>
           )}
 
-          {/* TAB 5: COMMUNITIES */}
+          {/* TAB 6: COMMUNITIES */}
           {activeTab === 'communities' && (
             <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4">
               <h3 className="font-bold text-sm text-ink border-b border-surface-border pb-2">Registered Worker Cooperatives</h3>
-              
+
               <div className="divide-y divide-surface-border">
                 {communities.map(c => (
                   <div key={c.id} className="flex justify-between items-center py-4 first:pt-0 last:pb-0 gap-4">
@@ -375,7 +426,7 @@ export default function AdminDashboard({ initialTab = 'overview' }: AdminDashboa
             </div>
           )}
 
-          {/* TAB 6: SYSTEM FLAGS */}
+          {/* TAB 7: SYSTEM FLAGS */}
           {activeTab === 'reports' && (
             <div className="bg-white border border-surface-border rounded-3xl p-6 shadow-sm space-y-4 text-center py-12">
               <div className="h-12 w-12 rounded-xl bg-emerald-50 text-emerald-500 border border-emerald-100 flex items-center justify-center mx-auto shadow-sm">

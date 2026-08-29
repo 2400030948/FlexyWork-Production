@@ -5,12 +5,14 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   Star, ShieldCheck, MessageSquare, ArrowLeft,
-  Calendar, Check, ShieldAlert, BadgeCheck, Users
+  Calendar, Check, ShieldAlert, BadgeCheck, Users, Award, Briefcase
 } from 'lucide-react';
 import { getProviderById } from '../../../services/providers';
 import { WorkerProfile } from '../../../types';
 import AvailabilityBadge from '../../../components/ui/AvailabilityBadge';
 import LocationBadge from '../../../components/ui/LocationBadge';
+import PublicCertificates from '../../../components/worker/PublicCertificates';
+import PublicExperience from '../../../components/worker/PublicExperience';
 
 export default function ProviderProfilePage() {
   const params = useParams();
@@ -73,6 +75,10 @@ export default function ProviderProfilePage() {
     { id: 2, author: 'Kavitha R.', rating: 4.8, date: '1 week ago', comment: `Very thorough and detail-oriented. ${provider.name.split(' ')[0]} paid close attention to the small spots most people miss. Will book again.` }
   ];
 
+  const verifiedCertCount = (provider.certifications || []).filter(
+    (c) => c.verificationStatus === 'verified'
+  ).length;
+
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8">
       
@@ -94,7 +100,17 @@ export default function ProviderProfilePage() {
             <div className="space-y-1">
               <div className="flex items-center gap-2">
                 <h1 className="text-2xl font-extrabold text-ink leading-none">{provider.name}</h1>
-                {provider.isVerified && <BadgeCheck className="text-emerald-500 fill-emerald-50" size={20} />}
+                {provider.isVerified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 px-2.5 py-0.5 text-xxs font-extrabold uppercase tracking-wider">
+                    <BadgeCheck className="text-emerald-600 fill-emerald-100" size={14} />
+                    Verified Worker
+                  </span>
+                )}
+                {!provider.isVerified && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 px-2.5 py-0.5 text-xxs font-extrabold uppercase tracking-wider">
+                    Pending Verification
+                  </span>
+                )}
               </div>
               <p className="text-sm text-brand-600 font-bold">{provider.skills[0] || 'Household Helper'}</p>
               <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-subtle">
@@ -104,6 +120,14 @@ export default function ProviderProfilePage() {
                 </span>
                 <span className="text-stone-300">•</span>
                 <LocationBadge distance={provider.distance} location={provider.location} className="!py-0 !px-0 bg-transparent text-ink-muted" />
+                {verifiedCertCount > 0 && (
+                  <>
+                    <span className="text-stone-300">•</span>
+                    <span className="flex items-center gap-0.5 text-emerald-700 font-semibold">
+                      <ShieldCheck size={12} /> {verifiedCertCount} verified {verifiedCertCount === 1 ? 'credential' : 'credentials'}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -116,12 +140,22 @@ export default function ProviderProfilePage() {
 
         {/* Action Panel */}
         <div className="flex flex-col sm:flex-row gap-3 border-t border-surface-border pt-6">
-          <Link
-            href={`/request-service?providerId=${provider.id}&skill=${encodeURIComponent(provider.skills[0] || '')}`}
-            className="flex-1 inline-flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white py-3.5 text-sm font-bold shadow-md shadow-brand-500/10 transition-colors"
-          >
-            Request Service
-          </Link>
+          {provider.isVerified ? (
+            <Link
+              href={`/request-service?providerId=${provider.id}&skill=${encodeURIComponent(provider.skills[0] || '')}`}
+              className="flex-1 inline-flex items-center justify-center rounded-xl bg-brand-500 hover:bg-brand-600 text-white py-3.5 text-sm font-bold shadow-md shadow-brand-500/10 transition-colors"
+            >
+              Request Service
+            </Link>
+          ) : (
+            <button
+              disabled
+              title="This worker has not been verified by admin yet."
+              className="flex-1 inline-flex items-center justify-center gap-2 rounded-xl bg-stone-200 text-ink-subtle py-3.5 text-sm font-bold cursor-not-allowed"
+            >
+              Booking Unavailable
+            </button>
+          )}
           <button
             onClick={() => alert(`Simulated Chat with ${provider.name} initialized.`)}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-ink border border-surface-border px-6 py-3.5 text-sm font-bold transition-colors"
@@ -131,6 +165,20 @@ export default function ProviderProfilePage() {
           </button>
         </div>
       </div>
+
+      {/* Verification barrier banner for seekers */}
+      {!provider.isVerified && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+          <ShieldAlert className="text-amber-700 shrink-0 mt-0.5" size={18} />
+          <div className="text-xs text-amber-900">
+            <p className="font-extrabold uppercase tracking-wider text-xxs">Verification Pending</p>
+            <p className="mt-1 leading-relaxed">
+              {provider.name.split(' ')[0]}'s professional credentials are still awaiting admin review. You can view
+              their profile but cannot book or request their services until at least one certificate is approved.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Detail Layout */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -145,6 +193,12 @@ export default function ProviderProfilePage() {
               {provider.bio}
             </p>
           </div>
+
+          {/* Certifications */}
+          <PublicCertificates certifications={provider.certifications} />
+
+          {/* Professional Experience */}
+          <PublicExperience experiences={provider.workExperiences} />
 
           {/* Skills Tags */}
           <div className="bg-white border border-surface-border rounded-2xl p-6 shadow-sm space-y-3">
@@ -243,6 +297,12 @@ export default function ProviderProfilePage() {
                 <span className="text-ink-muted">Identity Check</span>
                 <strong className="text-emerald-600 font-bold flex items-center gap-0.5">
                   <ShieldCheck size={14} /> Passed
+                </strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-ink-muted">Verified Credentials</span>
+                <strong className="text-emerald-700 font-bold flex items-center gap-0.5">
+                  <Award size={14} /> {verifiedCertCount}
                 </strong>
               </div>
             </div>

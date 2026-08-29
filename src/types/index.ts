@@ -17,6 +17,34 @@ export interface AvailabilitySlot {
   ranges: string[];
 }
 
+export type VerificationStatus = 'pending' | 'verified' | 'rejected';
+export type WorkerVerificationStatus = 'unverified' | 'pending' | 'approved' | 'rejected';
+
+export interface Certification {
+  id: string;
+  title: string;
+  issuingOrganization: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+  description?: string;
+  documentUrl?: string;
+  verificationStatus: VerificationStatus;
+  verifiedAt?: string | null;
+  rejectionReason?: string;
+}
+
+export interface WorkExperience {
+  id: string;
+  jobTitle: string;
+  organization: string;
+  startDate: string;
+  endDate?: string;
+  currentlyWorking: boolean;
+  description?: string;
+  skills: string[];
+}
+
 export interface WorkerProfile {
   id: string;
   userId: string;
@@ -34,10 +62,20 @@ export interface WorkerProfile {
   hourlyRate: number; // in ₹
   availability: AvailabilitySlot[];
   isVerified: boolean;
+  workerVerificationStatus?: WorkerVerificationStatus;
   isTopRated: boolean;
   communityId?: string;
   communityName?: string;
   avatarUrl?: string;
+  certifications?: Certification[];
+  workExperiences?: WorkExperience[];
+}
+
+export interface WorkerVerificationStatusResponse {
+  workerVerificationStatus: WorkerVerificationStatus;
+  isVerified: boolean;
+  certifications: Certification[];
+  latestRejectionReason?: string;
 }
 
 export interface EmployerProfile {

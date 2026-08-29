@@ -27,6 +27,40 @@ const unavailablePeriodSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const certificationSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    issuingOrganization: { type: String, required: true, trim: true },
+    issueDate: { type: String, required: true },
+    expiryDate: { type: String, default: "" },
+    credentialId: { type: String, default: "" },
+    description: { type: String, default: "" },
+    documentUrl: { type: String, default: "" },
+    verificationStatus: {
+      type: String,
+      enum: ["pending", "verified", "rejected"],
+      default: "pending"
+    },
+    verifiedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    verifiedAt: { type: Date, default: null },
+    rejectionReason: { type: String, default: "" }
+  },
+  { _id: true, timestamps: true }
+);
+
+const experienceSchema = new mongoose.Schema(
+  {
+    jobTitle: { type: String, required: true, trim: true },
+    organization: { type: String, required: true, trim: true },
+    startDate: { type: String, required: true },
+    endDate: { type: String, default: "" },
+    currentlyWorking: { type: Boolean, default: false },
+    description: { type: String, default: "" },
+    skills: [{ type: String }]
+  },
+  { _id: true, timestamps: true }
+);
+
 const workerProfileSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, unique: true },
@@ -43,7 +77,9 @@ const workerProfileSchema = new mongoose.Schema(
     isVerified: { type: Boolean, default: true },
     location: { type: String, default: "Indiranagar" },
     latitude: Number,
-    longitude: Number
+    longitude: Number,
+    certifications: [certificationSchema],
+    workExperiences: [experienceSchema]
   },
   { timestamps: true }
 );

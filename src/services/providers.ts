@@ -1,4 +1,4 @@
-import { WorkerProfile, AvailabilitySlot } from '../types';
+import { WorkerProfile, AvailabilitySlot, Certification, WorkExperience, WorkerVerificationStatusResponse } from '../types';
 import { apiCall } from './api';
 
 export async function getProviders(filters?: {
@@ -64,4 +64,121 @@ export async function updateWorkerProfile(profile: {
     body: JSON.stringify(profile)
   });
   return data.worker;
+}
+
+// ============= CERTIFICATIONS =============
+
+export async function getMyCertifications(): Promise<Certification[]> {
+  const data = await apiCall<{ certifications: Certification[] }>('/api/workers/me/certifications');
+  return data.certifications || [];
+}
+
+export async function addCertification(payload: {
+  title: string;
+  issuingOrganization: string;
+  issueDate: string;
+  expiryDate?: string;
+  credentialId?: string;
+  description?: string;
+  documentUrl?: string;
+}): Promise<Certification> {
+  const data = await apiCall<{ certification: Certification }>('/api/workers/me/certifications', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  return data.certification;
+}
+
+export async function updateCertification(
+  certId: string,
+  payload: {
+    title: string;
+    issuingOrganization: string;
+    issueDate: string;
+    expiryDate?: string;
+    credentialId?: string;
+    description?: string;
+    documentUrl?: string;
+  }
+): Promise<Certification> {
+  const data = await apiCall<{ certification: Certification }>(
+    `/api/workers/me/certifications/${certId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }
+  );
+  return data.certification;
+}
+
+export async function deleteCertification(certId: string): Promise<void> {
+  await apiCall(`/api/workers/me/certifications/${certId}`, {
+    method: 'DELETE'
+  });
+}
+
+// ============= EXPERIENCE =============
+
+export async function getMyExperiences(): Promise<WorkExperience[]> {
+  const data = await apiCall<{ experiences: WorkExperience[] }>('/api/workers/me/experience');
+  return data.experiences || [];
+}
+
+export async function addExperience(payload: {
+  jobTitle: string;
+  organization: string;
+  startDate: string;
+  endDate?: string;
+  currentlyWorking?: boolean;
+  description?: string;
+  skills?: string[];
+}): Promise<WorkExperience> {
+  const data = await apiCall<{ experience: WorkExperience }>('/api/workers/me/experience', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+  return data.experience;
+}
+
+export async function updateExperience(
+  expId: string,
+  payload: {
+    jobTitle: string;
+    organization: string;
+    startDate: string;
+    endDate?: string;
+    currentlyWorking?: boolean;
+    description?: string;
+    skills?: string[];
+  }
+): Promise<WorkExperience> {
+  const data = await apiCall<{ experience: WorkExperience }>(
+    `/api/workers/me/experience/${expId}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload)
+    }
+  );
+  return data.experience;
+}
+
+export async function deleteExperience(expId: string): Promise<void> {
+  await apiCall(`/api/workers/me/experience/${expId}`, {
+    method: 'DELETE'
+  });
+}
+
+// ============= WORKER VERIFICATION STATUS =============
+
+/**
+ * Returns the worker's overall certificate-driven verification status.
+ * This powers the trust barrier UI (unverified / pending / approved / rejected).
+ */
+export async function getMyVerificationStatus(): Promise<WorkerVerificationStatusResponse | null> {
+  try {
+    const data = await apiCall<WorkerVerificationStatusResponse>('/api/workers/me/verification-status');
+    return data;
+  } catch {
+    return null;
+  }
 }

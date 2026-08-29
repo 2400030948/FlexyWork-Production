@@ -1,5 +1,5 @@
 import express from "express";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { requireAuth, requireRole, requireVerifiedWorker } from "../middleware/auth.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
 import { Payment } from "../models/Payment.js";
@@ -10,7 +10,7 @@ import { WorkerProfile } from "../models/Profile.js";
 
 const router = express.Router();
 
-router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req, res, next) => {
+router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
   try {
     const shift = await Shift.findById(req.params.shiftId);
     if (!shift) return res.status(404).json({ message: "Shift not found" });
@@ -44,7 +44,7 @@ router.post("/:shiftId/check-in", requireAuth, requireRole("worker"), async (req
   }
 });
 
-router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), async (req, res, next) => {
+router.post("/:shiftId/check-out", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
   try {
     const attendance = await Attendance.findOne({ shiftId: req.params.shiftId, workerId: req.user._id });
     if (!attendance?.checkInAt) return res.status(409).json({ message: "Check in first" });

@@ -11,6 +11,7 @@ import { Gig, User } from '../../types';
 import GigCard from '../../components/shared/GigCard';
 import EarningsChart from '../../components/charts/EarningsChart';
 import EmptyState from '../../components/ui/EmptyState';
+import WorkerVerificationBanner from '../../components/worker/WorkerVerificationBanner';
 import { getMe } from '../../services/auth';
 import { getGigs, getMyGigs } from '../../services/gigs';
 import { getMyWorkerProfile } from '../../services/providers';
@@ -72,7 +73,10 @@ export default function WorkerDashboard() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-200">
-      
+
+      {/* Worker Verification Trust Barrier Banner */}
+      <WorkerVerificationBanner />
+
       {/* Header Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-surface-border pb-6">
         <div>

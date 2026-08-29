@@ -1,6 +1,6 @@
 import express from "express";
 import { z } from "zod";
-import { requireAuth, requireRole, optionalAuth } from "../middleware/auth.js";
+import { requireAuth, requireRole, optionalAuth, requireVerifiedWorker } from "../middleware/auth.js";
 import { Application } from "../models/Application.js";
 import { Attendance } from "../models/Attendance.js";
 import { Notification } from "../models/Notification.js";
@@ -8,10 +8,10 @@ import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
 import { Shift } from "../models/Shift.js";
 import { User } from "../models/User.js";
 import { calculateMatch } from "../services/matching.js";
-import { 
-  parseShiftFromNaturalLanguage, 
-  enhanceShiftDescription, 
-  getCategoryWageBenchmarks 
+import {
+  parseShiftFromNaturalLanguage,
+  enhanceShiftDescription,
+  getCategoryWageBenchmarks
 } from "../services/aiShiftParser.js";
 
 const router = express.Router();
@@ -222,7 +222,7 @@ router.get("/:id", requireAuth, async (req, res, next) => {
   }
 });
 
-router.post("/:id/apply", requireAuth, requireRole("worker"), async (req, res, next) => {
+router.post("/:id/apply", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
   try {
     const shift = await Shift.findById(req.params.id);
     if (!shift) return res.status(404).json({ message: "Shift not found" });
@@ -238,7 +238,7 @@ router.post("/:id/apply", requireAuth, requireRole("worker"), async (req, res, n
   }
 });
 
-router.post("/:id/accept", requireAuth, requireRole("worker"), async (req, res, next) => {
+router.post("/:id/accept", requireAuth, requireRole("worker"), requireVerifiedWorker, async (req, res, next) => {
   try {
     let shift = await Shift.findById(req.params.id);
     if (!shift) return res.status(404).json({ message: "Shift not found" });

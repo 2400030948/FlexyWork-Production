@@ -105,7 +105,49 @@ await WorkerProfile.findOneAndUpdate(
     reliabilityScore: 95,
     completedShifts: 94,
     isVerified: true,
-    location: "Benz Circle, Vijayawada"
+    location: "Benz Circle, Vijayawada",
+    certifications: [
+      {
+        title: "ITI Electrician Certificate",
+        issuingOrganization: "Government ITI",
+        issueDate: "2018",
+        expiryDate: "No Expiry",
+        credentialId: "ITI-2018-AP-4421",
+        description: "Two-year full-time program covering residential and industrial wiring, motor rewinding and safety standards.",
+        documentUrl: "",
+        verificationStatus: "verified",
+        verifiedAt: new Date()
+      },
+      {
+        title: "Smart Home Installer - Level 1",
+        issuingOrganization: "FlexyWork Academy",
+        issueDate: "2024",
+        credentialId: "FW-SHI-2024-119",
+        description: "Hands-on certification for WiFi smart switch and ceiling fan installations.",
+        documentUrl: "",
+        verificationStatus: "pending"
+      }
+    ],
+    workExperiences: [
+      {
+        jobTitle: "Electrician",
+        organization: "ABC Electrical Services",
+        startDate: "2022",
+        endDate: "",
+        currentlyWorking: true,
+        description: "• Residential electrical installation\n• Electrical maintenance\n• Safety inspection",
+        skills: ["Wiring", "Maintenance", "Safety inspection"]
+      },
+      {
+        jobTitle: "Junior Electrician",
+        organization: "Krishna District Electricians Union",
+        startDate: "2018",
+        endDate: "2022",
+        currentlyWorking: false,
+        description: "• Apprenticeship on commercial wiring projects\n• Assisted in appliance installation jobs",
+        skills: ["Wiring", "Apprenticeship"]
+      }
+    ]
   },
   { upsert: true }
 );

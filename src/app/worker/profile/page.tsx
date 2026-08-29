@@ -2,10 +2,13 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Save, CheckCircle, ShieldCheck, User } from 'lucide-react';
+import { Calendar, Save, CheckCircle, ShieldCheck, User, Award, Briefcase } from 'lucide-react';
 import { WorkerProfile, AvailabilitySlot } from '../../../types';
 import { getMe } from '../../../services/auth';
 import { getProviderById, updateAvailability, updateWorkerProfile } from '../../../services/providers';
+import CertificateSection from '../../../components/worker/CertificateSection';
+import ExperienceSection from '../../../components/worker/ExperienceSection';
+import WorkerVerificationBanner from '../../../components/worker/WorkerVerificationBanner';
 
 export default function WorkerProfileSettings() {
   const router = useRouter();
@@ -93,7 +96,10 @@ export default function WorkerProfileSettings() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 page-enter">
-      
+
+      {/* Worker Trust Barrier Status Banner */}
+      <WorkerVerificationBanner />
+
       {/* Title & Human Profile Banner */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-surface-border pb-6">
         <div className="flex items-center gap-4">
@@ -198,7 +204,10 @@ export default function WorkerProfileSettings() {
         {/* SECTION 2: BIOGRAPHICAL & PROFILE SETTINGS */}
         <div className="space-y-4">
           <div className="border-b border-surface-border pb-2">
-            <h2 className="text-base font-bold text-ink">Personal & Service Details</h2>
+            <h2 className="text-base font-bold text-ink flex items-center gap-1.5">
+              <User size={16} className="text-brand-600" />
+              Personal & Service Details
+            </h2>
             <p className="text-xs text-ink-muted">Public worker profile visible to employers in Indiranagar</p>
           </div>
 
@@ -271,7 +280,21 @@ export default function WorkerProfileSettings() {
 
       </form>
 
+      {/* SECTION 3: CERTIFICATIONS & EXPERIENCE — owned sub-form, does not share save state with profile form above */}
+      <div className="space-y-8 pt-4 border-t border-surface-border">
+        <div className="flex items-center gap-2 pt-2">
+          <Award size={18} className="text-brand-600" />
+          <Briefcase size={18} className="text-brand-600" />
+          <h2 className="text-lg font-extrabold text-ink">Certifications & Experience</h2>
+        </div>
+        <p className="text-xs text-ink-muted -mt-6">
+          Add professional credentials and work history. Verified credentials help employers trust your profile.
+        </p>
+
+        <CertificateSection />
+        <ExperienceSection />
+      </div>
+
     </div>
   );
 }
-

@@ -1,10 +1,13 @@
 import express from "express";
-import { requireAuth, requireRole } from "../middleware/auth.js";
+import { z } from "zod";
+import { requireAuth, requireRole, computeWorkerVerificationStatus } from "../middleware/auth.js";
 import { WorkerProfile } from "../models/Profile.js";
 import { Shift } from "../models/Shift.js";
 import { User } from "../models/User.js";
 
 const router = express.Router();
+
+const objectIdPattern = /^[0-9a-fA-F]{24}$/;
 
 function serializeUser(user) {
   return {
@@ -15,6 +18,37 @@ function serializeUser(user) {
     location: user.location,
     avatarUrl: user.profileImage,
     createdAt: user.createdAt?.toISOString()
+  };
+}
+
+function serializeCertification(cert) {
+  if (!cert) return null;
+  return {
+    id: cert._id.toString(),
+    title: cert.title,
+    issuingOrganization: cert.issuingOrganization,
+    issueDate: cert.issueDate || "",
+    expiryDate: cert.expiryDate || "",
+    credentialId: cert.credentialId || "",
+    description: cert.description || "",
+    documentUrl: cert.documentUrl || "",
+    verificationStatus: cert.verificationStatus || "pending",
+    verifiedAt: cert.verifiedAt ? cert.verifiedAt.toISOString() : null,
+    rejectionReason: cert.rejectionReason || ""
+  };
+}
+
+function serializeExperience(exp) {
+  if (!exp) return null;
+  return {
+    id: exp._id.toString(),
+    jobTitle: exp.jobTitle,
+    organization: exp.organization,
+    startDate: exp.startDate || "",
+    endDate: exp.endDate || "",
+    currentlyWorking: !!exp.currentlyWorking,
+    description: exp.description || "",
+    skills: exp.skills || []
   };
 }
 
@@ -36,7 +70,9 @@ function serializeWorker(profile, user) {
     availability: profile.availability || [],
     isVerified: profile.isVerified ?? true,
     isTopRated: (profile.rating || 0) >= 4.8,
-    avatarUrl: user?.profileImage
+    avatarUrl: user?.profileImage,
+    certifications: (profile.certifications || []).map(serializeCertification).filter(Boolean),
+    workExperiences: (profile.workExperiences || []).map(serializeExperience).filter(Boolean)
   };
 }
 
@@ -106,6 +142,109 @@ router.patch("/workers/:id/verification", requireAuth, requireRole("admin"), asy
 
     const user = await User.findById(profile.userId);
     res.json({ worker: serializeWorker(profile, user) });
+  } catch (error) {
+    next(error);
+  }
+});
+
+const verifyCertPayload = z.object({
+  verificationStatus: z.enum(["verified", "rejected"]),
+  rejectionReason: z.string().max(500).optional().default("")
+});
+
+router.patch(
+  "/workers/:workerId/certifications/:certId/verification",
+  requireAuth,
+  requireRole("admin"),
+  async (req, res, next) => {
+    try {
+      const { workerId, certId } = req.params;
+      if (!objectIdPattern.test(workerId) || !objectIdPattern.test(certId)) {
+        return res.status(404).json({ message: "Certification not found" });
+      }
+
+      const body = verifyCertPayload.parse(req.body);
+      const profile = await WorkerProfile.findById(workerId);
+      if (!profile) return res.status(404).json({ message: "Worker profile not found" });
+
+      const cert = profile.certifications.id(certId);
+      if (!cert) return res.status(404).json({ message: "Certification not found" });
+
+      cert.verificationStatus = body.verificationStatus;
+      cert.verifiedAt = body.verificationStatus === "verified" ? new Date() : null;
+      cert.verifiedBy = body.verificationStatus === "verified" ? req.user._id : null;
+      cert.rejectionReason = body.verificationStatus === "rejected" ? (body.rejectionReason || "") : "";
+
+      // Re-sync the worker's overall isVerified flag from the cert array.
+      const status = computeWorkerVerificationStatus(profile);
+      profile.isVerified = status === "approved";
+
+      await profile.save();
+      res.json({
+        certification: serializeCertification(cert),
+        workerVerificationStatus: status,
+        workerId: profile._id.toString()
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+router.get("/worker-verifications", requireAuth, requireRole("admin"), async (_req, res, next) => {
+  try {
+    const profiles = await WorkerProfile.find().sort({ updatedAt: -1 });
+    const userIds = profiles.map((p) => p.userId);
+    const users = await User.find({ _id: { $in: userIds } });
+    const usersById = new Map(users.map((u) => [u._id.toString(), u]));
+
+    const verifications = profiles.map((profile) => {
+      const user = usersById.get(profile.userId.toString());
+      const certs = (profile.certifications || []).map(serializeCertification).filter(Boolean);
+      const status = computeWorkerVerificationStatus(profile);
+      const latestCert = certs.length ? certs[certs.length - 1] : null;
+      return {
+        workerId: profile._id.toString(),
+        userId: profile.userId.toString(),
+        name: user?.name || "Worker",
+        email: user?.email || "",
+        location: profile.location || user?.location || "",
+        skills: profile.skills || [],
+        avatarUrl: user?.profileImage,
+        workerVerificationStatus: status,
+        isVerified: status === "approved",
+        certificates: certs,
+        submittedAt: profile.updatedAt?.toISOString() || profile.createdAt?.toISOString() || null,
+        latestCertificate: latestCert
+      };
+    });
+
+    res.json({ verifications });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/certifications", requireAuth, requireRole("admin"), async (_req, res, next) => {
+  try {
+    const profiles = await WorkerProfile.find({ "certifications.0": { $exists: true } });
+    const userIds = profiles.map((p) => p.userId);
+    const users = await User.find({ _id: { $in: userIds } });
+    const usersById = new Map(users.map((u) => [u._id.toString(), u]));
+
+    const result = [];
+    profiles.forEach((profile) => {
+      const user = usersById.get(profile.userId.toString());
+      (profile.certifications || []).forEach((cert) => {
+        result.push({
+          workerId: profile._id.toString(),
+          workerName: user?.name || "Worker",
+          workerEmail: user?.email || "",
+          certification: serializeCertification(cert)
+        });
+      });
+    });
+    res.json({ certifications: result });
   } catch (error) {
     next(error);
   }
