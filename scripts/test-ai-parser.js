@@ -58,13 +58,24 @@ async function runTests() {
   console.assert(t5.parsedShift.paymentAmount === null, "T5 Pay should be null");
   console.assert(t5.needsClarification.includes("pay"), "T5 should need pay clarification");
 
+  // TEST 6: Hinglish input
+  console.log("\n--- TEST 6 (Hinglish): 'Kal subah 9 baje se dopahar 2 baje tak cafe helper chahiye 800 rupaye dunga' ---");
+  const t6 = await parseShiftFromNaturalLanguage("Kal subah 9 baje se dopahar 2 baje tak cafe helper chahiye 800 rupaye dunga");
+  console.log("Result:", JSON.stringify(t6, null, 2));
+  console.assert(t6.parsedShift.title === "Waiter", "T6 Title failed");
+  console.assert(t6.parsedShift.startTime === "09:00", "T6 StartTime failed");
+  console.assert(t6.parsedShift.endTime === "14:00", "T6 EndTime failed");
+  console.assert(t6.parsedShift.paymentAmount === 800, "T6 Pay failed");
+  console.assert(t6.parsedShift.paymentType === "fixed", "T6 PayType failed");
+  console.assert(t6.parsedShift.duration === "5h", "T6 Duration failed");
+
   // Midnight crossing duration test
   console.log("\n--- MIDNIGHT CROSSING DURATION TEST: 22:00 to 02:00 ---");
   const dur = calculateDuration("22:00", "02:00");
   console.log("Duration:", dur);
   console.assert(dur === "4h", "Midnight duration failed");
 
-  console.log("\n✅ ALL BACKEND SHIFT PARSER TESTS PASSED SUCCESSFULLY!");
+  console.log("\n✅ ALL BACKEND SHIFT PARSER & HINGLISH TESTS PASSED SUCCESSFULLY!");
 }
 
 runTests().catch(err => {

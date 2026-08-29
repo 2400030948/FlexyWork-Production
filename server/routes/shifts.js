@@ -8,7 +8,11 @@ import { EmployerProfile, WorkerProfile } from "../models/Profile.js";
 import { Shift } from "../models/Shift.js";
 import { User } from "../models/User.js";
 import { calculateMatch } from "../services/matching.js";
-import { parseShiftFromNaturalLanguage } from "../services/aiShiftParser.js";
+import { 
+  parseShiftFromNaturalLanguage, 
+  enhanceShiftDescription, 
+  getCategoryWageBenchmarks 
+} from "../services/aiShiftParser.js";
 
 const router = express.Router();
 
@@ -77,8 +81,9 @@ async function serializeShift(shift, workerProfile, viewerId) {
     applicationStatus: application ? application.status : null,
     matchScore: match ? match.score : 85,
     matchReasons: match ? match.reasons : ["Flexible shift in your area"],
-    checkInTime: attendance?.checkInTime ? new Date(attendance.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
-    checkOutTime: attendance?.checkOutTime ? new Date(attendance.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+    time: `${shift.startTime} - ${shift.endTime}`,
+    checkInTime: attendance?.checkInAt ? new Date(attendance.checkInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
+    checkOutTime: attendance?.checkOutAt ? new Date(attendance.checkOutAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined,
     checkInOtp
   };
 }
@@ -159,6 +164,21 @@ router.post("/parse", optionalAuth, async (req, res, next) => {
     console.error("Shift parse error:", error);
     res.status(500).json({ message: "AI shift parsing failed. You can still fill the form manually." });
   }
+});
+
+router.post("/enhance-description", optionalAuth, async (req, res, next) => {
+  try {
+    const { title, category, location, skills, description } = req.body;
+    const enhanced = await enhanceShiftDescription({ title, category, location, skills, description });
+    res.json({ enhancedDescription: enhanced });
+  } catch (error) {
+    console.error("Enhance description error:", error);
+    res.status(500).json({ message: "Failed to enhance description." });
+  }
+});
+
+router.get("/wage-benchmarks", (_req, res) => {
+  res.json({ benchmarks: getCategoryWageBenchmarks() });
 });
 
 router.get("/mine", requireAuth, async (req, res, next) => {
