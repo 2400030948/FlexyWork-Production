@@ -338,107 +338,91 @@ export default function PostGigPage() {
         </Link>
       </div>
 
-      {/* Modern Aesthetic Quick Shift Autofill */}
-      <div className="relative overflow-hidden rounded-3xl border border-brand-200/80 bg-gradient-to-br from-brand-50/70 via-white to-indigo-50/40 p-5 sm:p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div className="flex items-center gap-2.5">
-            <div className="h-8 w-8 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-500 text-white flex items-center justify-center shadow-xs">
-              <Sparkles size={16} />
-            </div>
-            <div>
-              <h2 className="text-xs font-black text-ink uppercase tracking-wider">Fast Shift Autofill</h2>
-              <p className="text-xxs text-ink-subtle">Type or speak shift requirements in natural words</p>
-            </div>
+      {/* Minimalist Quick Shift Autofill */}
+      <div className="rounded-2xl border border-surface-border bg-white p-5 shadow-xs space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-ink">Quick Fill from Text</span>
+            <span className="text-xxs text-ink-subtle">Type or speak shift requirements to pre-fill the form</span>
           </div>
-          <span className="text-[11px] font-semibold text-brand-700 bg-brand-100/70 px-2.5 py-0.5 rounded-full border border-brand-200/60">
-            English & Hindi Supported
-          </span>
         </div>
 
-        <div className="space-y-3">
-          <div className="relative rounded-2xl border border-brand-200/90 bg-white/95 focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/10 shadow-xs transition-all">
-            <textarea
-              rows={2}
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="e.g. Need 1 waiter this Saturday from 6 PM to 11 PM paying ₹1000 with customer service skills"
-              className="w-full bg-transparent p-3.5 pr-32 text-xs font-medium text-ink placeholder:text-stone-400 focus:outline-none resize-none leading-relaxed"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleAIParsing();
-                }
-              }}
-            />
-            
-            <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={toggleVoiceInput}
-                className={`p-2 rounded-xl text-xs transition-all ${
-                  isListening
-                    ? 'bg-rose-500 text-white animate-pulse shadow-xs'
-                    : 'text-stone-400 hover:text-brand-600 hover:bg-brand-50'
-                }`}
-                title={isListening ? 'Listening... click to stop' : 'Voice Input'}
-              >
-                {isListening ? <MicOff size={15} /> : <Mic size={15} />}
-              </button>
+        <div className="relative rounded-xl border border-surface-border bg-stone-50/50 focus-within:bg-white focus-within:border-brand-500/50 focus-within:ring-2 focus-within:ring-brand-500/10 transition-all">
+          <textarea
+            rows={2}
+            value={aiPrompt}
+            onChange={(e) => setAiPrompt(e.target.value)}
+            placeholder="e.g. Need 1 waiter this Saturday from 6 PM to 11 PM paying ₹1000 with customer service skills"
+            className="w-full bg-transparent p-3.5 pr-28 text-xs font-medium text-ink placeholder:text-stone-400 focus:outline-none resize-none leading-relaxed"
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                handleAIParsing();
+              }
+            }}
+          />
+          
+          <div className="absolute right-2.5 bottom-2.5 flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={toggleVoiceInput}
+              className={`p-1.5 rounded-lg text-xs transition-all ${
+                isListening
+                  ? 'bg-rose-50 text-rose-600 font-bold animate-pulse'
+                  : 'text-stone-400 hover:text-ink hover:bg-stone-200/50'
+              }`}
+              title={isListening ? 'Listening... click to stop' : 'Voice Input'}
+            >
+              {isListening ? <MicOff size={15} /> : <Mic size={15} />}
+            </button>
 
-              <button
-                type="button"
-                onClick={() => handleAIParsing()}
-                disabled={aiLoading || !aiPrompt.trim()}
-                className="rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-700 hover:to-indigo-700 disabled:opacity-40 text-white px-4 py-2 text-xs font-bold transition-all shadow-sm shadow-brand-500/20 flex items-center gap-1.5"
-              >
-                {aiLoading ? (
-                  <>
-                    <Sparkles size={13} className="animate-spin" />
-                    <span>Filling...</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={13} />
-                    <span>Auto-Fill</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-
-          {/* AI Success / Clarification Banner */}
-          {aiSuccessMessage && (
-            <div className={`text-xs font-medium rounded-xl p-3 flex items-center gap-2 animate-in fade-in duration-200 ${
-              needsClarification.length > 0
-                ? 'bg-amber-50 border border-amber-200 text-amber-900'
-                : 'bg-emerald-50 border border-emerald-200 text-emerald-900'
-            }`}>
-              {needsClarification.length > 0 ? (
-                <AlertCircle size={15} className="shrink-0 text-amber-600" />
+            <button
+              type="button"
+              onClick={() => handleAIParsing()}
+              disabled={aiLoading || !aiPrompt.trim()}
+              className="rounded-lg bg-ink hover:bg-black disabled:opacity-30 text-white px-3.5 py-1.5 text-xs font-semibold transition-all shadow-xs flex items-center gap-1"
+            >
+              {aiLoading ? (
+                <span>Parsing...</span>
               ) : (
-                <CheckCircle size={15} className="shrink-0 text-emerald-600" />
+                <span>Auto-Fill</span>
               )}
-              <span>{aiSuccessMessage}</span>
-            </div>
-          )}
-
-          {/* Aesthetic quick suggestion pills */}
-          <div className="flex items-center gap-1.5 pt-0.5 overflow-x-auto no-scrollbar flex-wrap">
-            <span className="text-[10px] font-bold text-ink-subtle uppercase tracking-wider mr-1">Quick Prompts:</span>
-            {PRESET_PROMPTS.map((prompt, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setAiPrompt(prompt);
-                  handleAIParsing(prompt);
-                }}
-                className="text-[11px] font-semibold bg-white hover:bg-brand-50 text-ink-muted hover:text-brand-700 border border-brand-100/90 rounded-full px-3 py-1 transition-all shadow-2xs hover:border-brand-300"
-              >
-                {prompt.split(' ').slice(0, 5).join(' ')}...
-              </button>
-            ))}
+            </button>
           </div>
+        </div>
+
+        {/* AI Success / Clarification Banner */}
+        {aiSuccessMessage && (
+          <div className={`text-xs font-medium rounded-xl p-3 flex items-center gap-2 animate-in fade-in duration-200 ${
+            needsClarification.length > 0
+              ? 'bg-amber-50/70 border border-amber-200/60 text-amber-900'
+              : 'bg-emerald-50/70 border border-emerald-200/60 text-emerald-900'
+          }`}>
+            {needsClarification.length > 0 ? (
+              <AlertCircle size={15} className="shrink-0 text-amber-600" />
+            ) : (
+              <CheckCircle size={15} className="shrink-0 text-emerald-600" />
+            )}
+            <span>{aiSuccessMessage}</span>
+          </div>
+        )}
+
+        {/* Inline discreet suggestions */}
+        <div className="flex items-center gap-2 text-[11px] text-ink-subtle pt-0.5 overflow-x-auto no-scrollbar">
+          <span className="shrink-0 font-medium">Examples:</span>
+          {PRESET_PROMPTS.slice(0, 2).map((prompt, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => {
+                setAiPrompt(prompt);
+                handleAIParsing(prompt);
+              }}
+              className="truncate text-ink-muted hover:text-ink hover:underline underline-offset-2 transition-all shrink-0 max-w-[280px]"
+            >
+              "{prompt}"
+            </button>
+          ))}
         </div>
       </div>
 
@@ -763,9 +747,9 @@ export default function PostGigPage() {
                 type="button"
                 onClick={handleEnhanceDescription}
                 disabled={enhancingDesc}
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50 hover:bg-brand-100 border border-brand-200 px-3 py-1 rounded-xl transition-all disabled:opacity-50 shadow-2xs"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-ink hover:text-black bg-stone-50 hover:bg-stone-100 border border-surface-border px-2.5 py-1 rounded-lg transition-all disabled:opacity-50"
               >
-                <Wand2 size={13} className={enhancingDesc ? "animate-spin text-brand-600" : "text-brand-600"} />
+                <Wand2 size={12} className={enhancingDesc ? "animate-spin text-ink" : "text-ink-muted"} />
                 {enhancingDesc ? "Formatting..." : "Auto-format duties"}
               </button>
             </div>
@@ -802,18 +786,13 @@ export default function PostGigPage() {
         <div className="lg:col-span-5 space-y-6">
           <div className="sticky top-24 space-y-4">
 
-            {/* Listing Completeness Card */}
+            {/* Shift Completeness Meter */}
             <div className="rounded-2xl border border-surface-border bg-white p-4 shadow-xs space-y-2.5">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Award size={15} className="text-brand-600" />
-                  <span className="text-xs font-bold text-ink">Listing Strength</span>
-                </div>
-                <span className="text-xs font-extrabold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-full border border-brand-100">
-                  {qualityScore}%
-                </span>
+                <span className="text-xs font-bold text-ink">Listing Completeness</span>
+                <span className="text-xs font-bold text-ink-muted">{qualityScore}%</span>
               </div>
-              <div className="w-full bg-stone-100 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-stone-100 rounded-full h-1.5 overflow-hidden">
                 <div 
                   className={`h-full rounded-full transition-all duration-300 ${
                     qualityScore >= 80 ? 'bg-emerald-500' : qualityScore >= 50 ? 'bg-amber-500' : 'bg-stone-400'
@@ -823,13 +802,12 @@ export default function PostGigPage() {
               </div>
               <p className="text-[11px] text-ink-muted leading-relaxed">
                 {qualityScore >= 80 ? (
-                  <span className="text-emerald-700 font-medium flex items-center gap-1">
-                    <ShieldCheck size={13} className="shrink-0" />
-                    Complete listing. Estimated match in ~15 mins.
+                  <span className="text-emerald-700 font-medium">
+                    ✓ Complete listing. Ready to publish to local verified workers.
                   </span>
                 ) : (
                   <span>
-                    💡 Provide clear duties, exact times, and location for fastest matching.
+                    Add complete timing, pay, and location details for fastest matching.
                   </span>
                 )}
               </p>

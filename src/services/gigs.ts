@@ -115,3 +115,29 @@ export async function parseShiftNaturalLanguage(rawText: string): Promise<ParseS
   });
 }
 
+export async function enhanceShiftDescription(shiftData: {
+  title?: string;
+  category?: string;
+  location?: string;
+  skills?: string[];
+  description?: string;
+}): Promise<string> {
+  const data = await apiCall<{ enhancedDescription: string }>('/api/shifts/enhance-description', {
+    method: 'POST',
+    body: JSON.stringify(shiftData)
+  });
+  return data.enhancedDescription;
+}
+
+export async function parseAIPrompt(prompt: string): Promise<any> {
+  const data = await parseShiftNaturalLanguage(prompt);
+  return data.parsedShift || data.parsed;
+}
+
+export async function getWageBenchmarks(): Promise<Record<string, { hourlyMin: number; hourlyMax: number; hourlyAvg: number; fixedAvg: number; label: string }>> {
+  const data = await apiCall<{ benchmarks: any }>('/api/shifts/wage-benchmarks');
+  return data.benchmarks;
+}
+
+
+

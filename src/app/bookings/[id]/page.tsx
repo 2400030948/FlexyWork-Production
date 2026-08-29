@@ -10,7 +10,8 @@ import {
 } from 'lucide-react';
 import { Gig, ShiftApplication, User } from '../../../types';
 import StatusBadge from '../../../components/ui/StatusBadge';
-import { getGigById, getShiftApplications, updateApplicationStatus, recordAttendance } from '../../../services/gigs';
+import { getGigById, getShiftApplications, updateApplicationStatus } from '../../../services/gigs';
+import { markShiftPaid } from '../../../services/payments';
 import { getMe } from '../../../services/auth';
 
 export default function BookingDetailPage() {
@@ -256,10 +257,10 @@ export default function BookingDetailPage() {
                         onClick={async () => {
                           setActionLoading('complete');
                           try {
-                            await recordAttendance(gig.id, 'check-out');
+                            await markShiftPaid(gig.id);
                             await fetchGigData();
                           } catch (e: any) {
-                            alert(e.message || 'Failed to complete booking');
+                            alert(e.message || 'Failed to release payout');
                           } finally {
                             setActionLoading(null);
                           }

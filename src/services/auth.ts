@@ -87,14 +87,6 @@ export async function loginWithGoogle(payload: {
   return fromApiUser(data.user);
 }
 
-export async function switchRole(role: UserRole): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/switch-role', {
-    method: 'POST',
-    body: JSON.stringify({ role: toApiRole(role) })
-  });
-  return fromApiUser(data.user);
-}
-
 export async function logout(): Promise<void> {
   await apiCall<{ ok: boolean }>('/api/auth/logout', { method: 'POST' });
 }

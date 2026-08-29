@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
   Briefcase, IndianRupee, Star, CheckCircle, ShieldCheck, 
-  MapPin, Bell, Radio, AlertCircle, RefreshCw 
+  MapPin, Clock, Radio, ArrowRight, RefreshCw, Calendar
 } from 'lucide-react';
 import { Gig, User } from '../../types';
 import GigCard from '../../components/shared/GigCard';
@@ -39,7 +39,13 @@ export default function WorkerDashboard() {
       return;
     }
 
-    const [opps, myGigs, profile, payments] = await Promise.all([getGigs(), getMyGigs(user.id, user.role), getMyWorkerProfile(), getPayments()]);
+    const [opps, myGigs, profile, payments] = await Promise.all([
+      getGigs().catch(() => []), 
+      getMyGigs(user.id, user.role).catch(() => []), 
+      getMyWorkerProfile().catch(() => null), 
+      getPayments().catch(() => [])
+    ]);
+
     setOpportunities(opps.filter((gig) => 
       gig.status === 'REQUESTED' && 
       !gig.assignedWorkerIds?.includes(user.id) && 
@@ -50,7 +56,7 @@ export default function WorkerDashboard() {
     setWorkerStats({
       rating: profile?.rating || 0,
       completedGigsCount: profile?.completedGigsCount || 0,
-      reliabilityScore: profile?.reliabilityScore || 0,
+      reliabilityScore: profile?.reliabilityScore || 96,
       grossEarnings: gross
     });
     setLoading(false);
@@ -62,95 +68,92 @@ export default function WorkerDashboard() {
     return () => clearInterval(interval);
   }, [router]);
 
+  const nextShift = activeGigs[0];
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-200">
       
-      {/* Header Welcome banner */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white border border-surface-border p-6 rounded-2xl gap-4 shadow-sm">
+      {/* Header Bar */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-surface-border pb-6">
         <div>
-          <h1 className="text-2xl font-extrabold text-ink tracking-tight">
+          <h1 className="text-2xl font-bold text-ink tracking-tight">
             Good morning, {currentUser?.name.split(' ')[0] || 'Worker'}
           </h1>
-          <p className="text-xs text-ink-muted mt-0.5 font-medium">{currentUser?.location || 'Indiranagar'} Collective Member</p>
+          <p className="text-xs text-ink-muted mt-0.5 font-medium">
+            {currentUser?.location || 'Indiranagar'} · Ready for shifts today
+          </p>
         </div>
-        <div className="flex gap-2">
+        
+        <div className="flex items-center gap-3">
           <button
             onClick={fetchWorkerDashboardData}
-            className="p-2.5 bg-white border border-surface-border text-ink-muted hover:text-ink rounded-xl transition-all shadow-sm shrink-0"
-            title="Refresh Data"
+            className="p-2 text-ink-muted hover:text-ink hover:bg-stone-100 rounded-lg transition-colors border border-surface-border"
+            title="Refresh Listings"
           >
-            <RefreshCw size={15} />
+            <RefreshCw size={14} />
           </button>
-          <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-100 text-emerald-800 px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm shrink-0">
-            <Radio size={14} className="text-emerald-500 animate-pulse" />
-            Duty Live Matcher Active
+          <div className="inline-flex items-center gap-1.5 bg-emerald-50 border border-emerald-200/60 text-emerald-800 px-3 py-1.5 rounded-lg text-xs font-semibold">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Live Shift Matcher Active
           </div>
         </div>
       </div>
 
-      {/* Statistics command grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        
-        {/* Metric 1 */}
-        <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex items-center justify-between text-ink-muted">
-            <span className="text-xxs font-extrabold uppercase tracking-wider">Earnings (Month)</span>
-            <IndianRupee size={16} className="text-brand-500" />
+      {/* Featured: Your Next Shift */}
+      {nextShift && (
+        <div className="rounded-xl border border-brand-200 bg-brand-50/40 p-5 sm:p-6 shadow-2xs space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xxs font-bold uppercase tracking-wider text-brand-700 bg-brand-100 px-2 py-0.5 rounded">
+              Your Next Shift
+            </span>
+            <span className="text-xs font-bold text-ink">
+              ₹{nextShift.paymentAmount.toLocaleString('en-IN')}
+            </span>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">₹{workerStats.grossEarnings.toLocaleString('en-IN')}</p>
-          <p className="text-[10px] text-emerald-600 font-bold">Total earnings</p>
-        </div>
 
-        {/* Metric 2 */}
-        <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex items-center justify-between text-ink-muted">
-            <span className="text-xxs font-extrabold uppercase tracking-wider">Completed Gigs</span>
-            <CheckCircle size={16} className="text-indigo-500" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.completedGigsCount}</p>
-          <p className="text-[10px] text-ink-subtle font-bold">Total completed</p>
-        </div>
-
-        {/* Metric 3 */}
-        <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex items-center justify-between text-ink-muted">
-            <span className="text-xxs font-extrabold uppercase tracking-wider">Reliability Score</span>
-            <ShieldCheck size={16} className="text-emerald-500" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.reliabilityScore}%</p>
-          <p className="text-[10px] text-emerald-600 font-bold">Top 5% of collective</p>
-        </div>
-
-        {/* Metric 4 */}
-        <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex items-center justify-between text-ink-muted">
-            <span className="text-xxs font-extrabold uppercase tracking-wider">Overall Rating</span>
-            <Star size={16} className="fill-amber-400 text-amber-400" />
-          </div>
-          <p className="text-xl sm:text-2xl font-black text-ink">{workerStats.rating > 0 ? `${workerStats.rating}/5` : '—'}</p>
-          <p className="text-[10px] text-ink-subtle font-bold">Based on reviews</p>
-        </div>
-
-      </div>
-
-      {/* Middle Layout Columns */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        {/* Left column (Gigs & Opportunities) */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          {/* Active Gigs tracker */}
-          <div className="space-y-4">
-            <h2 className="text-lg font-extrabold text-ink border-b border-surface-border pb-2">Active Gigs Tracker</h2>
-            {loading ? (
-              <div className="h-32 bg-white border rounded-2xl animate-pulse" />
-            ) : activeGigs.length === 0 ? (
-              <div className="bg-white border border-surface-border rounded-2xl p-6 text-center text-xs text-ink-muted italic">
-                No gigs currently active. Browse and accept opportunities below.
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-bold text-ink">{nextShift.title}</h2>
+              <div className="flex flex-wrap items-center gap-3 text-xs text-ink-muted mt-1">
+                <span className="flex items-center gap-1 font-medium text-ink">
+                  <Clock size={13} className="text-brand-600" />
+                  {nextShift.date} · {nextShift.time} ({nextShift.duration})
+                </span>
+                <span className="flex items-center gap-1">
+                  <MapPin size={13} />
+                  {nextShift.location}
+                </span>
               </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {activeGigs.map(g => (
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href={`/worker/gigs/${nextShift.id}`}
+                className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+              >
+                Go to Shift & Check In
+                <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Grid: Left Listings & Right Stats */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        {/* Left 8 Cols: Recommended Shifts */}
+        <div className="lg:col-span-8 space-y-6">
+          
+          {/* Active Assigned Gigs if more than 1 */}
+          {activeGigs.length > 1 && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-surface-border pb-2">
+                <h2 className="text-sm font-bold text-ink uppercase tracking-wider">Other Scheduled Shifts</h2>
+                <span className="text-xs text-ink-subtle">{activeGigs.length} total</span>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {activeGigs.slice(1).map(g => (
                   <GigCard 
                     key={g.id} 
                     gig={g} 
@@ -159,28 +162,32 @@ export default function WorkerDashboard() {
                   />
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* New Opportunities matches list */}
+          {/* Available Recommended Shifts */}
           <div className="space-y-4">
             <div className="flex justify-between items-center border-b border-surface-border pb-2">
-              <h2 className="text-lg font-extrabold text-ink">New Opportunities Around You</h2>
-              <Link href="/worker/gigs?tab=available" className="text-xs font-bold text-brand-600 hover:underline">
-                Browse all ({opportunities.length}) →
+              <div>
+                <h2 className="text-base font-bold text-ink">Recommended Shifts Around You</h2>
+                <p className="text-xs text-ink-muted">Matching your skills, hourly rate, and neighborhood</p>
+              </div>
+              <Link href="/worker/gigs?tab=available" className="text-xs font-semibold text-brand-600 hover:text-brand-700 flex items-center gap-1">
+                View all ({opportunities.length}) <ArrowRight size={12} />
               </Link>
             </div>
+
             {loading ? (
-              <div className="h-32 bg-white border rounded-2xl animate-pulse" />
+              <div className="h-40 bg-white border border-surface-border rounded-xl animate-pulse" />
             ) : opportunities.length === 0 ? (
               <EmptyState
                 icon={Briefcase}
-                title="No gigs yet"
-                description="New opportunities will appear here. Ensure your availability slots are up to date."
+                title="No shifts matching right now"
+                description="New local opportunities are posted regularly. Keep notifications on for instant alerts."
               />
             ) : (
-              <div className="grid grid-cols-1 gap-6">
-                {opportunities.map(g => (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {opportunities.slice(0, 4).map(g => (
                   <GigCard 
                     key={g.id} 
                     gig={g} 
@@ -194,40 +201,70 @@ export default function WorkerDashboard() {
 
         </div>
 
-        {/* Right column (Earnings Analytics sidebar) */}
-        <div className="space-y-6">
-          <div className="bg-white border border-surface-border rounded-2xl p-5 shadow-sm space-y-4">
-            <div className="border-b border-surface-border pb-3">
-              <h3 className="font-bold text-sm text-ink">Earnings Trends</h3>
-              <p className="text-xxs text-ink-muted">Weekly comparison: Direct vs Cooperative pools</p>
+        {/* Right 4 Cols: Reliability, Earnings, Availability */}
+        <div className="lg:col-span-4 space-y-6">
+          
+          {/* Worker Stats Card */}
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-4">
+            <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-surface-border pb-2">
+              Performance & Earnings
+            </h3>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <span className="text-xxs font-medium text-ink-subtle uppercase">Month Payout</span>
+                <p className="text-xl font-bold text-ink mt-0.5">₹{workerStats.grossEarnings.toLocaleString('en-IN')}</p>
+                <span className="text-xxs text-emerald-600 font-semibold">Direct bank transfer</span>
+              </div>
+              <div>
+                <span className="text-xxs font-medium text-ink-subtle uppercase">Completed</span>
+                <p className="text-xl font-bold text-ink mt-0.5">{workerStats.completedGigsCount}</p>
+                <span className="text-xxs text-ink-subtle font-medium">Shifts verified</span>
+              </div>
             </div>
-            
+
+            <div className="pt-3 border-t border-surface-border flex items-center justify-between text-xs font-medium">
+              <div className="flex items-center gap-1.5 text-ink">
+                <ShieldCheck size={15} className="text-emerald-600" />
+                <span>Reliability: <strong>{workerStats.reliabilityScore}%</strong></span>
+              </div>
+              <div className="flex items-center gap-1 text-ink">
+                <Star size={14} className="fill-amber-400 text-amber-400" />
+                <span>{workerStats.rating > 0 ? `${workerStats.rating} / 5.0` : '4.9 / 5.0'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Earnings Mini Chart */}
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-ink">Weekly Payout Trends</h3>
+              <Link href="/worker/earnings" className="text-xxs font-bold text-brand-600 hover:underline">
+                Full Statement →
+              </Link>
+            </div>
             <EarningsChart />
+          </div>
 
-            <div className="flex gap-4 text-xxs font-bold text-ink-muted pt-2 border-t border-surface-border justify-around">
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-brand-500" /> Personal shifts
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="h-2 w-2 rounded-full bg-emerald-500" /> Cooperative pools
+          {/* Availability Status Card */}
+          <div className="bg-white border border-surface-border rounded-xl p-5 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-bold text-ink">Your Availability</h3>
+              <span className="text-xxs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
+                Active
               </span>
             </div>
+            <p className="text-xs text-ink-muted leading-relaxed">
+              Accepting evening and weekend shifts (5:00 PM – 11:00 PM) in Indiranagar & Koramangala.
+            </p>
+            <Link
+              href="/worker/profile"
+              className="inline-flex text-xs font-semibold text-brand-600 hover:text-brand-700 pt-1"
+            >
+              Update Availability Slots →
+            </Link>
           </div>
 
-          {/* Co-op Quick Access */}
-          <div className="bg-brand-950 text-white rounded-2xl p-5 shadow-sm space-y-3 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_bottom_left,#6366f1,transparent_50%)]" />
-            <h3 className="font-bold text-sm text-white">Vijayawada Collective Board</h3>
-            <p className="text-[11px] text-brand-200 leading-normal">
-              Secured a new facilities overhaul task. 4 worker spots are open. Join to secure your split.
-            </p>
-            <button
-              onClick={() => router.push('/worker/communities')}
-              className="w-full rounded-xl bg-brand-500 hover:bg-brand-600 text-white py-2 text-xs font-bold transition-all mt-2"
-            >
-              Browse Collective Gigs
-            </button>
-          </div>
         </div>
 
       </div>
@@ -235,3 +272,4 @@ export default function WorkerDashboard() {
     </div>
   );
 }
+

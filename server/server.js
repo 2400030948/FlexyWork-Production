@@ -55,20 +55,19 @@ async function ensureAdminUser() {
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminEmail || !adminPassword) return;
 
+  const existing = await User.findOne({ email: adminEmail.toLowerCase().trim() });
+  if (existing) return;
+
   const passwordHash = await bcrypt.hash(adminPassword, 12);
-  await User.findOneAndUpdate(
-    { email: adminEmail.toLowerCase().trim() },
-    {
-      name: "FlexyWork Admin",
-      email: adminEmail.toLowerCase().trim(),
-      role: "admin",
-      roles: ["admin"],
-      passwordHash,
-      location: "Indiranagar"
-    },
-    { upsert: true, returnDocument: "after" }
-  );
-  console.log(`Admin user synchronized from .env: ${adminEmail}`);
+  await User.create({
+    name: "FlexyWork Admin",
+    email: adminEmail.toLowerCase().trim(),
+    role: "admin",
+    roles: ["admin"],
+    passwordHash,
+    location: "Indiranagar"
+  });
+  console.log(`Admin user created from .env: ${adminEmail}`);
 }
 
 connectDb()
