@@ -6,6 +6,8 @@ type ApiUser = Omit<User, 'role' | 'avatarUrl'> & {
   profileImage?: string;
 };
 
+type AuthResponse = { user: ApiUser; token?: string };
+
 function fromApiUser(user: ApiUser): User {
   return {
     ...user,
@@ -18,8 +20,17 @@ function toApiRole(role: UserRole): 'worker' | 'employer' {
   return role === 'worker' ? 'worker' : 'employer';
 }
 
+function storeToken(token: string | undefined) {
+  if (typeof window === 'undefined' || !token) return;
+  try {
+    window.localStorage.setItem('flexywork_token', token);
+  } catch {
+    // Ignore storage errors (e.g. private mode); the cookie path still works.
+  }
+}
+
 export async function login(email: string, password: string, role?: UserRole): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/login', {
+  const data = await apiCall<AuthResponse>('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({
       email,
@@ -27,6 +38,7 @@ export async function login(email: string, password: string, role?: UserRole): P
       role: role ? toApiRole(role) : undefined
     })
   });
+  storeToken(data.token);
   return fromApiUser(data.user);
 }
 
@@ -53,7 +65,7 @@ export async function signup(
   otp?: string,
   businessName?: string
 ): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/register', {
+  const data = await apiCall<AuthResponse>('/api/auth/register', {
     method: 'POST',
     body: JSON.stringify({
       name,
@@ -65,6 +77,7 @@ export async function signup(
       businessName
     })
   });
+  storeToken(data.token);
   return fromApiUser(data.user);
 }
 
@@ -77,13 +90,14 @@ export async function loginWithGoogle(payload: {
   role?: UserRole;
   location?: string;
 }): Promise<User> {
-  const data = await apiCall<{ user: ApiUser }>('/api/auth/google', {
+  const data = await apiCall<AuthResponse>('/api/auth/google', {
     method: 'POST',
     body: JSON.stringify({
       ...payload,
       role: payload.role ? toApiRole(payload.role) : 'employer'
     })
   });
+  storeToken(data.token);
   return fromApiUser(data.user);
 }
 

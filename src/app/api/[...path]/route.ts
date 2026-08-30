@@ -16,6 +16,24 @@ function getApiBase(): string {
   return 'http://127.0.0.1:4000';
 }
 
+// Hop-by-hop response headers (RFC 7230 §6.1). These describe the
+// connection between the proxy and the origin, not the end-to-end
+// response. They MUST NOT be forwarded to the client. We also drop
+// Set-Cookie because the origin (Render) is on a different host than
+// this proxy (Vercel); forwarding a cookie meant for a different
+// origin can cause browsers to discard the response body.
+const HOP_BY_HOP_RESPONSE_HEADERS = new Set([
+  'connection',
+  'keep-alive',
+  'proxy-authenticate',
+  'proxy-authorization',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'set-cookie'
+]);
+
 async function proxyRequest(request: NextRequest, path: string[]) {
   const targetPath = `/api/${path.join('/')}`;
   const targetUrl = new URL(targetPath, getApiBase());
@@ -43,7 +61,7 @@ async function proxyRequest(request: NextRequest, path: string[]) {
     const responseHeaders = new Headers();
 
     response.headers.forEach((value, key) => {
-      if (key === 'transfer-encoding') return;
+      if (HOP_BY_HOP_RESPONSE_HEADERS.has(key.toLowerCase())) return;
       responseHeaders.set(key, value);
     });
 

@@ -173,7 +173,8 @@ router.post("/register", async (req, res, next) => {
     });
 
     await createProfile(user, body, normalizedRole);
-    res.cookie("flexywork_token", sign(user), cookieOptions).status(201).json({ user });
+    const token = sign(user);
+    res.cookie("flexywork_token", token, cookieOptions).status(201).json({ user, token });
   } catch (error) {
     next(error);
   }
@@ -193,7 +194,8 @@ router.post("/login", async (req, res, next) => {
     }
 
     // Always log in with user's permanent registered role
-    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
+    const token = sign(user);
+    res.cookie("flexywork_token", token, cookieOptions).json({ user, token });
   } catch (error) {
     next(error);
   }
@@ -266,7 +268,8 @@ router.post("/google", async (req, res, next) => {
       await createProfile(user, { location, businessName: `${user.name}'s Business` }, normalizedRole);
     }
 
-    res.cookie("flexywork_token", sign(user), cookieOptions).json({ user });
+    const token = sign(user);
+    res.cookie("flexywork_token", token, cookieOptions).json({ user, token });
   } catch (error) {
     next(error);
   }
