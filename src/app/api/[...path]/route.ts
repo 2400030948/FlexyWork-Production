@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 function getApiBase(): string {
-  const apiUrl = process.env.API_URL?.trim();
+  // Order of precedence:
+  //   1. API_URL — server-only env var (preferred for the Vercel + Render split
+  //      so the public NEXT_PUBLIC_API_URL is never accidentally used for an
+  //      internal call). Set this in Vercel to the public Render URL, e.g.
+  //      "https://flexywork-api.onrender.com".
+  //   2. NEXT_PUBLIC_API_URL — the canonical public backend base URL.
+  //      Kept as a fallback so deployments that only configure the public
+  //      variable still work.
+  //   3. Local development fallback (Express on the same host).
+  const apiUrl = process.env.API_URL?.trim() || process.env.NEXT_PUBLIC_API_URL?.trim();
   if (apiUrl) return apiUrl.replace(/\/$/, '');
-
-  if (process.env.NODE_ENV === 'production') {
-    return 'http://127.0.0.1:4000';
-  }
 
   return 'http://127.0.0.1:4000';
 }
