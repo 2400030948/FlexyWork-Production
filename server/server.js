@@ -42,7 +42,43 @@ app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
 });
 
-app.use("/api/auth", rateLimit({ windowMs: 15 * 60_000, max: 30, keyPrefix: "auth" }), authRoutes);
+// Auth rate limiting.
+//
+// The previous configuration put a single 30-req / 15-min bucket on the
+// entire /api/auth router, which is too aggressive for a normal sign-up
+// flow (send-otp + verify-otp + login easily uses 3-5 requests). We now
+// use two layers:
+//
+//   1. A generous per-IP budget on all auth endpoints so legitimate
+//      sign-ups, logins and OTP re-sends aren't blocked.
+//   2. A much stricter per-IP budget on POST /api/auth/login specifically
+//      so password-brute-force attempts are still rejected.
+//
+// NOTE on ordering: `app.use` middleware runs in registration order. We
+// register the strict `/api/auth/login` limiter BEFORE the router so it
+// actually sees the request (otherwise authRoutes would terminate the
+// response first and the stricter limit would never apply).
+const authLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 200,
+  keyPrefix: "auth"
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60_000,
+  max: 20,
+  keyPrefix: "login"
+});
+
+// Strict login limit runs after the broader /api/auth limiter so its
+// response headers (the more restrictive ones) are the ones the client
+// sees. Login is still rejected earlier because loginLimiter has the
+// lower budget and runs before the auth router's handler.
+app.use("/api/auth", authLimiter);
+
+app.use("/api/auth/login", loginLimiter);
+
+app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/communities", communityRoutes);
 app.use("/api/shifts", shiftRoutes);

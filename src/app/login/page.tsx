@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Briefcase, ArrowRight, User, Loader2 } from 'lucide-react';
 import { login } from '../../services/auth';
+import { ApiError } from '../../services/api';
 import { GoogleSignInButton } from '../../components/auth/GoogleSignInButton';
 import { UserRole } from '../../types';
 
@@ -15,6 +16,16 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [retryIn, setRetryIn] = useState<number | null>(null);
+
+  // Tick down the "try again in N seconds" timer while > 0.
+  useEffect(() => {
+    if (retryIn == null || retryIn <= 0) return;
+    const id = setInterval(() => {
+      setRetryIn((prev) => (prev == null ? null : prev <= 1 ? null : prev - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [retryIn]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,6 +35,7 @@ export default function LoginPage() {
     }
     setLoading(true);
     setError('');
+    setRetryIn(null);
     try {
       const user = await login(email, password);
       if (user.role === 'worker') {
@@ -34,7 +46,12 @@ export default function LoginPage() {
         router.push('/home');
       }
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check credentials.');
+      const message = err?.message || 'Login failed. Please check credentials.';
+      setError(message);
+      // Surface the rate-limit retry timer if the server sent one.
+      if (err instanceof ApiError && err.status === 429 && typeof err.retryAfterSeconds === 'number') {
+        setRetryIn(err.retryAfterSeconds);
+      }
     } finally {
       setLoading(false);
     }
@@ -116,7 +133,12 @@ export default function LoginPage() {
         <form className="space-y-4" onSubmit={handleSubmit}>
           {error && (
             <div className="bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl p-3">
-              {error}
+              <p>{error}</p>
+              {retryIn != null && retryIn > 0 && (
+                <p className="mt-1 text-rose-700 font-normal">
+                  Please wait {retryIn} second{retryIn === 1 ? '' : 's'} before trying again.
+                </p>
+              )}
             </div>
           )}
 
