@@ -127,8 +127,45 @@ async function proxyRequest(request: NextRequest, path: string[]) {
   try {
     response = await fetch(targetUrl, init);
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'API request failed';
-    console.error(`[proxy] fetch failed for target=${targetUrl.toString()}: ${message}`);
+    // Safe diagnostic logging — reveals the real undici / Node failure
+    // (ECONNRESET, UND_ERR_*, TLS error, DNS error, timeout, etc.) so we
+    // can distinguish between "Vercel can't reach Render" and "Render
+    // rejected the request body". NEVER log request bodies, passwords,
+    // JWTs, cookies, Authorization headers, or any other secrets here.
+    const e = error as unknown as {
+      name?: string;
+      message?: string;
+      code?: string;
+      stack?: string;
+      cause?: {
+        name?: string;
+        message?: string;
+        code?: string;
+        stack?: string;
+      };
+    };
+    const cause = e.cause;
+    const causeName = cause?.name ?? '<none>';
+    const causeMessage = cause?.message ?? '<none>';
+    const causeCode = cause?.code ?? '<none>';
+
+    console.error(
+      `[proxy] fetch failed ` +
+        `target=${targetUrl.toString()} ` +
+        `error_name=${e.name ?? '<none>'} ` +
+        `error_message=${e.message ?? '<none>'} ` +
+        `error_code=${e.code ?? '<none>'} ` +
+        `cause_name=${causeName} ` +
+        `cause_message=${causeMessage} ` +
+        `cause_code=${causeCode}`
+    );
+    if (e.stack) {
+      console.error(`[proxy] error_stack=${e.stack}`);
+    }
+    if (cause?.stack) {
+      console.error(`[proxy] cause_stack=${cause.stack}`);
+    }
+
     return NextResponse.json(
       {
         message: 'Upstream API is unreachable.'
